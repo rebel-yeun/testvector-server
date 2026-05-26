@@ -1,0 +1,6 @@
+# Core (required)
+Flask~=3.0
+gunicorn~=21.2
+
+# Optional — only needed for .env file support (fallback in app/config.py if missing)
+python-dotenv~=1.0

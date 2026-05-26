@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Environment
+.env
+
+# Test artifacts  
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Runtime directories (keep structure via .gitkeep)
+logs/*
+!logs/.gitkeep
+jobs/*
+!jobs/.gitkeep
+
+# Archives
+*.tar.gz
+*.zip

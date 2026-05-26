@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>워크로드 실행 시스템</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            max-height: 100vh;
+        }
+
+        /* 헤더 */
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        /* 상단: 시스템 정보 */
+        .system-header {
+            padding: 15px 20px;
+            background: #f0f2f5;
+            border-bottom: 1px solid #e0e0e0;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .metric-card h3 {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 중단: 메인 콘텐츠 */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 30%;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .workload-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .workload-header h2 {
+            font-size: 14px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .workload-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .workload-item {
+            padding: 10px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .workload-item:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .workload-item.selected {
+            border-color: #667eea;
+            background: #e8ebff;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .right-panel {
+            width: 70%;
+            display: flex;
+            flex-direction: row;
+            padding: 15px;
+            gap: 15px;
+            overflow: auto;
+        }
+
+        .right-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .right-sidebar {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .rail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .rail-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 7px;
+            font-size: 11px;
+        }
+
+        .rail-card h4 {
+            font-size: 9px;
+            color: #666;
+            margin-bottom: 3px;
+            word-break: break-all;
+        }
+
+        .rail-val {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .sysinfo-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        .sysinfo-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .control-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .control-section h3 {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .control-group input {
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 80px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-run {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-run:hover:not(:disabled) {
+            background: #45a049;
+        }
+
+        .btn-run:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-cancel {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-cancel:hover:not(:disabled) {
+            background: #da190b;
+        }
+
+        .btn-cancel:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .progress-section h3 {
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .progress-display {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            text-align: center;
+        }
+
+        .progress-content {
+            width: 100%;
+        }
+
+        .progress-stage {
+            font-size: 14px;
+            color: #667eea;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-fill {
+            background: #667eea;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .result-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 10px;
+            color: #155724;
+            margin-top: 8px;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .result-box.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .live-log-box {
+            margin-top: 10px;
+            background: #0f172a;
+            color: #d1d5db;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
+            padding: 10px;
+            max-height: 220px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        /* 새 추가 스타일: 탭 및 차트 */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 20px;
+        }
+
+        .sysinfo-controls {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 0;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .toggle-label input { display: none; }
+
+        .toggle-slider {
+            width: 36px;
+            height: 20px;
+            background: #ccc;
+            border-radius: 10px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .toggle-label input:checked + .toggle-slider {
+            background: #667eea;
+        }
+
+        .toggle-label input:checked + .toggle-slider::after {
+            transform: translateX(16px);
+        }
+
+        .interval-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .interval-text {
+            min-width: 30px;
+            text-align: right;
+            font-weight: 600;
+        }
+
+        #sysinfo-interval {
+            width: 80px;
+            height: 4px;
+            cursor: pointer;
+        }
+
+        .tab-btn {
+            padding: 15px 25px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .chart-content {
+            display: none;
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .chart-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 8px;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            height: 280px;
+            position: relative;
+        }
+
+        .chart-card.span-3 {
+            grid-column: span 3;
+        }
+        .chart-card.span-2 {
+            grid-column: span 2;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .client-ips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            max-width: 50%;
+        }
+
+        .ip-badge {
+            background: #e8ebff;
+            color: #667eea;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid #c2cfff;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .conflict-banner {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 1px solid #ffeeba;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .conflict-banner.active {
+            display: flex;
+        }
+
+        /* 하단: 그래프 */
+
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #667eea;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            color: #999;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .empty-state-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .graphs-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .system-header {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .left-panel {
+                width: 100%;
+                max-height: 250px;
+            }
+
+            .right-panel {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .right-sidebar {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .right-sidebar > div {
+                flex: 1;
+                min-width: 240px;
+            }
+
+            .graphs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-card.span-3, .chart-card.span-2 {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <div class="header-top">
+                <div>
+                    <h1>📋 워크로드 실행 시스템</h1>
+                    <p style="color: #999; font-size: 13px;">시스템 모니터링 & 워크로드 실행 통합 대시보드</p>
+                </div>
+                <div class="client-ips" id="client-ips">
+                    <!-- IP badges will go here -->
+                </div>
+            </div>
+        </div>
+        <div class="conflict-banner" id="conflict-banner">
+            <!-- Warning banner goes here -->
+        </div>
+
+        <!-- 상단: 시스템 정보 -->
+        <div class="system-header">
+            <div class="metric-card">
+                <h3>온도</h3>
+                <div class="metric-value"><span id="temp-value">0</span>°C</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="temp-bar"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>전력</h3>
+                <div class="metric-value"><span id="power-value">0</span>W</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="power-bar"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>메모리</h3>
+                <div class="metric-value"><span id="mem-value">0</span>GB</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="mem-bar"></div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <h3>유틸</h3>
+                <div class="metric-value"><span id="util-value">0</span>%</div>
+                <div class="metric-bar">
+                    <div class="metric-bar-fill" id="util-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 바 -->
+        <div class="tab-bar">
+            <button class="tab-btn" onclick="switchTab('main')">📋 워크로드 실행</button>
+            <button class="tab-btn active" onclick="switchTab('chart')">📊 실시간 그래프</button>
+            <div class="sysinfo-controls">
+                <label class="toggle-label">
+                    <span class="toggle-text">rbln sysinfo</span>
+                    <input type="checkbox" id="sysinfo-toggle" checked onchange="toggleSysinfo(this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+                <label class="interval-label">
+                    <span class="interval-text" id="interval-display">1.0s</span>
+                    <input type="range" id="sysinfo-interval" min="1000" max="3000" step="1000" value="1000" oninput="updateIntervalDisplay(this.value)" onchange="setSysinfoInterval(this.value)">
+                </label>
+            </div>
+        </div>
+
+        <!-- 중단: 메인 콘텐츠 -->
+        <div class="main-content" id="main-content-tab" style="display:none;">
+            <!-- 왼쪽: 워크로드 리스트 -->
+            <div class="left-panel">
+                <div class="workload-header">
+                    <h2>📦 워크로드</h2>
+                </div>
+                <div class="workload-list" id="workload-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⏳</div>
+                        <p>로드 중...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 제어 및 진행 -->
+            <div class="right-panel">
+                <div class="right-main">
+                    <!-- 제어 섹션 -->
+                    <div class="control-section">
+                        <h3>▶️ 실행 설정</h3>
+                        <div class="control-group" style="margin-bottom: 10px;">
+                            <label for="workload-folder">워크로드 폴더:</label>
+                            <select id="workload-folder" onchange="onWorkloadFolderChange()" style="padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; min-width: 200px;">
+                                <option value="">로딩 중...</option>
+                            </select>
+                        </div>
+                        <div class="control-group" style="margin-bottom: 10px;">
+                            <label for="exec-time">시간(초):</label>
+                            <input type="number" id="exec-time" value="10" min="1" max="3600">
+                            <div class="button-group">
+                                <button class="btn btn-run" id="btn-run" onclick="runWorkload()" disabled>
+                                    Run
+                                </button>
+                                <button class="btn btn-cancel" id="btn-cancel" onclick="cancelWorkload()" disabled>
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; font-size:13px; line-height:1;">
+                            <label style="margin-right:14px; cursor:pointer; display:inline-flex; align-items:center;"><input type="checkbox" id="chk-save-log"> 로그 자동 저장(서버)</label>
+                            <label style="cursor:pointer; display:inline-flex; align-items:center;"><input type="checkbox" id="chk-auto-download"> 완료시 자동 다운로드(로컬)</label>
+                        </div>
+                    </div>
+
+                    <!-- 진행 섹션 -->
+                    <div class="progress-section">
+                        <h3>▶️ 진행 상황</h3>
+                        <div class="progress-display" id="progress-display">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">⏸️</div>
+                                <p>워크로드를 선택 후 Run</p>
+                            </div>
+                        </div>
+                        <div class="live-log-box" id="live-log-box"></div>
+                    </div>
+                </div>
+
+                <div class="right-sidebar">
+                    <div class="control-section" style="margin-bottom: 0;">
+                        <h3>⚡ Power Rails</h3>
+                        <div class="rail-grid" id="rail-cards">
+                            <div style="font-size: 11px; color: #999; padding: 8px;">Loading...</div>
+                        </div>
+                    </div>
+                    <div class="control-section" style="margin-bottom: 0;">
+                        <h3>💻 Device Info</h3>
+                        <div class="sysinfo-card" id="sysinfo-cards">
+                            <div style="font-size: 11px; color: #999;">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 차트 콘텐츠 -->
+        <div class="chart-content active" id="chart-content-tab">
+            <div style="padding:10px 15px 0; display:flex; gap:8px; align-items:center;">
+                <button class="btn" id="btn-chart-stop" onclick="chartStop()" style="padding:6px 14px; font-size:12px;">⏸ Stop</button>
+                <button class="btn" id="btn-chart-resume" onclick="chartResume()" disabled style="padding:6px 14px; font-size:12px;">▶ Resume</button>
+                <button class="btn" id="btn-chart-clear" onclick="chartClear()" style="padding:6px 14px; font-size:12px;">🗑 Clear</button>
+                <div style="margin-left:auto; display:flex; align-items:center; gap:4px; font-size:12px; color:#555;">
+                    <span>Avg Window:</span>
+                    <input type="range" id="avgWindowSlider" min="1" max="10" value="1" style="width:80px; cursor:pointer;" oninput="updateAvgWindow(this.value)">
+                    <span id="avgWindowValue" style="min-width:20px; font-weight:600;">1s</span>
+                </div>
+            </div>
+            <div class="chart-grid">
+                <div class="chart-card span-3">
+                    <canvas id="powerTempChart"></canvas>
+                </div>
+                <div class="chart-card span-3">
+                    <canvas id="hbmDramChart"></canvas>
+                </div>
+                <div class="chart-card span-2">
+                    <canvas id="railCore0Chart"></canvas>
+                </div>
+                <div class="chart-card span-2">
+                    <canvas id="railCore1UcieChart"></canvas>
+                </div>
+                <div class="chart-card span-2">
+                    <canvas id="railEtcChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentJob = null;
+        let lastCancelledJob = null;
+        let selectedWorkload = null;
+        let selectedWorkloadFolder = null;
+        let pollInterval = null;
+        let sysInfoInterval = null;
+        let logOffset = 0;
+
+        // Chart variables
+        let powerTempChart, hbmDramChart, railCore0Chart, railCore1UcieChart, railEtcChart;
+        let isChartTabVisible = true;
+        let isChartPaused = false;
+        const maxChartPoints = 60;
+        
+        const chartData = {
+            labels: [],
+            totalPower: [],
+            rails: { CORE0: [], CORE1: [], UCIE: [], HBM1: [], HBM0: [], HBM04T: [], HBM04B: [], SYS18: [], AVDD12: [], PCIE085: [] },
+            temps: { NPU: [], C0: [], C1: [], C2: [], C3: [] }
+        };
+
+        // 페이지 로드
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadWorkloadFolders();
+            startSystemMonitoring();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tabId === 'main') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('main-content-tab').style.display = 'flex';
+                document.getElementById('chart-content-tab').classList.remove('active');
+                isChartTabVisible = false;
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('main-content-tab').style.display = 'none';
+                document.getElementById('chart-content-tab').classList.add('active');
+                isChartTabVisible = true;
+                updateCharts();
+            }
+        }
+
+        let avgWindow = 1;
+
+        function initCharts() {
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                elements: { point: { radius: 0 } },
+                layout: { padding: { top: 0, bottom: 0 } },
+                scales: { x: { display: true } }
+            };
+
+            function avgLastN(arr) {
+                const slice = arr.slice(-avgWindow);
+                if (slice.length === 0) return '-';
+                return (slice.reduce((a, b) => a + b, 0) / slice.length).toFixed(2);
+            }
+
+            function dualLegend(unitMap) {
+                return {
+                    display: true,
+                    labels: {
+                        font: { size: 10 },
+                        generateLabels: function(chart) {
+                            return chart.data.datasets.map((ds, i) => {
+                                const avg = avgLastN(ds.data);
+                                const unit = unitMap[i] || '';
+                                return {
+                                    text: `${ds.label} (${avg}${unit})`,
+                                    fillStyle: ds.borderColor,
+                                    strokeStyle: ds.borderColor,
+                                    lineWidth: ds.borderDash ? 0 : 1,
+                                    lineDash: ds.borderDash || [],
+                                    hidden: !chart.isDatasetVisible(i),
+                                    datasetIndex: i
+                                };
+                            });
+                        }
+                    }
+                };
+            }
+
+            // 동적 Y축 max (현재 최대값의 1.5배, 최소 1)
+            function dynamicMaxPlugin(chart) {
+                const datasets = chart.data.datasets;
+                let max = 0;
+                datasets.forEach(ds => {
+                    ds.data.forEach(v => { if (v > max) max = v; });
+                });
+                const yScale = chart.options.scales.y || chart.options.scales.yPower;
+                if (yScale && !yScale._fixedMax) {
+                    yScale.max = Math.max(max * 1.5, 1);
+                }
+            }
+
+            // 1행 좌: 총 전력 + NPU Temp (듀얼 Y축)
+            powerTempChart = new Chart(document.getElementById('powerTempChart'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        { label: 'INPUT_12V', data: chartData.totalPower, borderColor: '#e74c3c', borderWidth: 2, tension: 0.1, yAxisID: 'yPower' },
+                        { label: 'NPU Temp', data: chartData.temps.NPU, borderColor: '#f59e0b', borderWidth: 2, borderDash: [5, 3], tension: 0.1, yAxisID: 'yTemp' }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        title: { display: true, text: '총 전력 + NPU 온도', padding: { top: 2, bottom: 4 } },
+                        legend: dualLegend({0: 'W', 1: '°C'})
+                    },
+                    scales: {
+                        x: { display: true },
+                        yPower: { type: 'linear', position: 'left', beginAtZero: true, max: 1000, title: { display: true, text: 'W', font: { size: 10 } } },
+                        yTemp: { type: 'linear', position: 'right', beginAtZero: true, max: 120, title: { display: true, text: '°C', font: { size: 10 } }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            // 1행 우: HBM 전력 + DRAM 온도 (듀얼 Y축)
+            hbmDramChart = new Chart(document.getElementById('hbmDramChart'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        { label: 'HBM_1P1V', data: chartData.rails.HBM1, borderColor: '#7c3aed', borderWidth: 1.5, tension: 0.1, yAxisID: 'yPower' },
+                        { label: 'HBM_0P85V', data: chartData.rails.HBM0, borderColor: '#0891b2', borderWidth: 1.5, tension: 0.1, yAxisID: 'yPower' },
+                        { label: 'HBM_0P4V_TOP', data: chartData.rails.HBM04T, borderColor: '#dc2626', borderWidth: 1.5, tension: 0.1, yAxisID: 'yPower' },
+                        { label: 'HBM_0P4V_BOT', data: chartData.rails.HBM04B, borderColor: '#d97706', borderWidth: 1.5, tension: 0.1, yAxisID: 'yPower' },
+                        { label: 'DRAM C0', data: chartData.temps.C0, borderColor: '#2563eb', borderWidth: 1.5, borderDash: [5, 3], tension: 0.1, yAxisID: 'yTemp' },
+                        { label: 'DRAM C1', data: chartData.temps.C1, borderColor: '#16a34a', borderWidth: 1.5, borderDash: [5, 3], tension: 0.1, yAxisID: 'yTemp' },
+                        { label: 'DRAM C2', data: chartData.temps.C2, borderColor: '#06b6d4', borderWidth: 1.5, borderDash: [5, 3], tension: 0.1, yAxisID: 'yTemp' },
+                        { label: 'DRAM C3', data: chartData.temps.C3, borderColor: '#f43f5e', borderWidth: 1.5, borderDash: [5, 3], tension: 0.1, yAxisID: 'yTemp' }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        title: { display: true, text: 'HBM 전력 + DRAM 온도', padding: { top: 2, bottom: 4 } },
+                        legend: dualLegend({0:'W', 1:'W', 2:'W', 3:'W', 4:'°C', 5:'°C', 6:'°C', 7:'°C'})
+                    },
+                    scales: {
+                        x: { display: true },
+                        yPower: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: 'W', font: { size: 10 } } },
+                        yTemp: { type: 'linear', position: 'right', beginAtZero: true, max: 120, title: { display: true, text: '°C', font: { size: 10 } }, grid: { drawOnChartArea: false } }
+                    }
+                },
+                plugins: [{
+                    beforeUpdate: function(chart) {
+                        const powerDatasets = chart.data.datasets.filter(ds => ds.yAxisID === 'yPower');
+                        let max = 0;
+                        powerDatasets.forEach(ds => { ds.data.forEach(v => { if (v > max) max = v; }); });
+                        chart.options.scales.yPower.max = Math.max(max * 1.5, 1);
+                    }
+                }]
+            });
+
+            // 2행 좌: CORE0 단독
+            railCore0Chart = new Chart(document.getElementById('railCore0Chart'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        { label: 'CORE0', data: chartData.rails.CORE0, borderColor: '#2563eb', borderWidth: 1.5, tension: 0.1 }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: { title: { display: true, text: 'CORE0 (W)', padding: { top: 2, bottom: 4 } }, legend: dualLegend({0:'W'}) },
+                    scales: { x: { display: true }, y: { beginAtZero: true } }
+                },
+                plugins: [{
+                    beforeUpdate: function(chart) {
+                        let max = 0;
+                        chart.data.datasets.forEach(ds => { ds.data.forEach(v => { if (v > max) max = v; }); });
+                        chart.options.scales.y.max = Math.max(max * 1.5, 1);
+                    }
+                }]
+            });
+
+            // 2행 중: CORE1 + UCIE
+            railCore1UcieChart = new Chart(document.getElementById('railCore1UcieChart'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        { label: 'CORE1', data: chartData.rails.CORE1, borderColor: '#16a34a', borderWidth: 1.5, tension: 0.1 },
+                        { label: 'UCIE', data: chartData.rails.UCIE, borderColor: '#ea580c', borderWidth: 1.5, tension: 0.1 }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: { title: { display: true, text: 'CORE1 / UCIE (W)', padding: { top: 2, bottom: 4 } }, legend: dualLegend({0:'W', 1:'W'}) },
+                    scales: { x: { display: true }, y: { beginAtZero: true } }
+                },
+                plugins: [{
+                    beforeUpdate: function(chart) {
+                        let max = 0;
+                        chart.data.datasets.forEach(ds => { ds.data.forEach(v => { if (v > max) max = v; }); });
+                        chart.options.scales.y.max = Math.max(max * 1.5, 1);
+                    }
+                }]
+            });
+
+            // 2행 우: 기타 Rail
+            railEtcChart = new Chart(document.getElementById('railEtcChart'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        { label: 'SYS_1P8V', data: chartData.rails.SYS18, borderColor: '#059669', borderWidth: 1.5, tension: 0.1 },
+                        { label: 'AVDD_1P2V', data: chartData.rails.AVDD12, borderColor: '#db2777', borderWidth: 1.5, tension: 0.1 },
+                        { label: 'PCIE_0P85V', data: chartData.rails.PCIE085, borderColor: '#4f46e5', borderWidth: 1.5, tension: 0.1 }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: { title: { display: true, text: '기타 Rail (W)', padding: { top: 2, bottom: 4 } }, legend: dualLegend({0:'W', 1:'W', 2:'W'}) },
+                    scales: { x: { display: true }, y: { beginAtZero: true } }
+                },
+                plugins: [{
+                    beforeUpdate: function(chart) {
+                        let max = 0;
+                        chart.data.datasets.forEach(ds => { ds.data.forEach(v => { if (v > max) max = v; }); });
+                        chart.options.scales.y.max = Math.max(max * 1.5, 1);
+                    }
+                }]
+            });
+        }
+
+        function updateCharts() {
+            if (!isChartTabVisible) return;
+            if (isChartPaused) return;
+            powerTempChart.update();
+            hbmDramChart.update();
+            railCore0Chart.update();
+            railCore1UcieChart.update();
+            railEtcChart.update();
+        }
+
+        function chartStop() {
+            isChartPaused = true;
+            document.getElementById('btn-chart-stop').disabled = true;
+            document.getElementById('btn-chart-resume').disabled = false;
+        }
+
+        function chartResume() {
+            isChartPaused = false;
+            document.getElementById('btn-chart-stop').disabled = false;
+            document.getElementById('btn-chart-resume').disabled = true;
+            updateCharts();
+        }
+
+        function chartClear() {
+            chartData.labels.length = 0;
+            chartData.totalPower.length = 0;
+            chartData.rails.CORE0.length = 0; chartData.rails.CORE1.length = 0;
+            chartData.rails.UCIE.length = 0; chartData.rails.HBM1.length = 0; chartData.rails.HBM0.length = 0;
+            chartData.rails.HBM04T.length = 0; chartData.rails.HBM04B.length = 0;
+            chartData.rails.SYS18.length = 0; chartData.rails.AVDD12.length = 0; chartData.rails.PCIE085.length = 0;
+            chartData.temps.NPU.length = 0; chartData.temps.C0.length = 0;
+            chartData.temps.C1.length = 0; chartData.temps.C2.length = 0; chartData.temps.C3.length = 0;
+            updateCharts();
+        }
+
+        function updateAvgWindow(val) {
+            avgWindow = parseInt(val);
+            document.getElementById('avgWindowValue').textContent = val + 's';
+            if (!isChartPaused) updateCharts();
+        }
+
+        // ============ Sysinfo Controls ============
+        let sysinfoIntervalMs = 1000;
+
+        async function loadSysinfoConfig() {
+            try {
+                const resp = await fetch('/api/sysinfo-config');
+                const cfg = await resp.json();
+                document.getElementById('sysinfo-toggle').checked = cfg.enabled;
+                document.getElementById('sysinfo-interval').value = cfg.interval_ms;
+                sysinfoIntervalMs = cfg.interval_ms;
+                updateIntervalDisplay(cfg.interval_ms);
+            } catch(e) {}
+        }
+
+        async function toggleSysinfo(enabled) {
+            await fetch('/api/sysinfo-config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled})
+            });
+        }
+
+        function updateIntervalDisplay(val) {
+            document.getElementById('interval-display').textContent = (val / 1000).toFixed(1) + 's';
+        }
+
+        async function setSysinfoInterval(val) {
+            const ms = parseInt(val);
+            sysinfoIntervalMs = ms;
+            await fetch('/api/sysinfo-config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({interval_ms: ms})
+            });
+            restartSystemMonitoring();
+        }
+
+        function restartSystemMonitoring() {
+            if (sysInfoInterval) clearInterval(sysInfoInterval);
+            sysInfoInterval = setInterval(updateSystemInfo, sysinfoIntervalMs);
+        }
+
+        // ============ 시스템 모니터링 ============
+        function startSystemMonitoring() {
+            loadSysinfoConfig().then(() => {
+                updateSystemInfo();
+                sysInfoInterval = setInterval(updateSystemInfo, sysinfoIntervalMs);
+            });
+        }
+
+        async function updateSystemInfo() {
+            try {
+                const response = await fetch('/api/system-info');
+                const data = await response.json();
+
+                // Active Clients Display
+                if (data.active_clients) {
+                    const clientContainer = document.getElementById('client-ips');
+                    if (clientContainer) {
+                        clientContainer.innerHTML = data.active_clients.map(ip => `<div class="ip-badge">🟢 ${ip}</div>`).join('');
+                    }
+                }
+
+                // Conflict Prevention
+                const banner = document.getElementById('conflict-banner');
+                const runBtn = document.getElementById('btn-run');
+                const isOtherRunning = data.running_job 
+                    && (!currentJob || data.running_job.job_id !== currentJob)
+                    && data.running_job.job_id !== lastCancelledJob;
+                
+                if (isOtherRunning) {
+                    if (banner) {
+                        banner.innerHTML = `⚠️ ${data.running_job.client_ip}에서 ${data.running_job.workload} 실행 중 (${data.running_job.progress?.percentage || 0}%)`;
+                        banner.classList.add('active');
+                    }
+                    if (runBtn && !currentJob) {
+                        runBtn.disabled = true;
+                    }
+                } else {
+                    if (banner) {
+                        banner.classList.remove('active');
+                    }
+                    if (runBtn && !currentJob && selectedWorkload) {
+                        runBtn.disabled = false;
+                    }
+                }
+
+                if (data.success && data.devices.length > 0) {
+                    const device = data.devices[0];
+
+                    // 메트릭 업데이트
+                    const temp = device.temperature;
+                    const power = device.power;
+                    const memUsed = device.memory.used;
+                    const memTotal = device.memory.total;
+                    const util = device.util;
+
+                    // UI 업데이트
+                    document.getElementById('temp-value').textContent = temp;
+                    document.getElementById('power-value').textContent = power;
+                    document.getElementById('mem-value').textContent = memUsed.toFixed(1);
+                    document.getElementById('util-value').textContent = util.toFixed(1);
+
+                    // 프로그레스 바
+                    document.getElementById('temp-bar').style.width = Math.min((temp / 80) * 100, 100) + '%';
+                    document.getElementById('power-bar').style.width = Math.min((power / 400) * 100, 100) + '%';
+                    document.getElementById('mem-bar').style.width = (memUsed / memTotal * 100) + '%';
+                    document.getElementById('util-bar').style.width = util + '%';
+
+                    // Sysinfo 카드
+                    const d = device;
+                    const dramTemps = d.dram_temp ? d.dram_temp.map((t, i) => `C${i}: ${t}℃`).join(', ') : 'N/A';
+                    const chipletUtil = d.chiplet_util ? d.chiplet_util.map(u => u.toFixed(1) + '%').join(', ') : 'N/A';
+                    const throttle = d.throttling ? '<span style="color:red;font-weight:700">YES</span>' : 'No';
+                    const pstate = d.pstate || 'N/A';
+
+                    document.getElementById('sysinfo-cards').innerHTML = `
+                        <div class="sysinfo-item"><span>DRAM Temps:</span><span class="rail-val" style="font-size:11px;">${dramTemps}</span></div>
+                        <div class="sysinfo-item"><span>Throttling:</span><span class="rail-val">${throttle}</span></div>
+                        <div class="sysinfo-item"><span>P-State:</span><span class="rail-val">${pstate}</span></div>
+                        <div class="sysinfo-item"><span>Chiplet Util:</span><span class="rail-val" style="font-size:10px;">${chipletUtil}</span></div>
+                        <div class="sysinfo-item"><span>Voltage:</span><span class="rail-val">${d.voltage_mv || 0}mV</span></div>
+                        <div class="sysinfo-item"><span>Current:</span><span class="rail-val">${d.current_ma || 0}mA</span></div>
+                    `;
+
+                    // Power Rail 카드
+                    if (data.smc_pwr && data.smc_pwr.disabled) {
+                        document.getElementById('rail-cards').innerHTML = '<div style="font-size:11px;color:#999;padding:8px;grid-column:1/-1;">sysinfo 비활성화됨</div>';
+                    } else if (data.smc_pwr && data.smc_pwr.available && data.smc_pwr.rails && data.smc_pwr.rails.length > 0) {
+                        const order = ['INPUT_12V','CORE0_0P75V','CORE1_0P75V','UCIE_0P75V','PCIE_0P85V','HBM_1P1V','HBM_0P85V','HBM_0P4V_TOP','HBM_0P4V_BOT','SYS_1P8V','AVDD_1P2V','SYS_3P3V'];
+                        const displayNames = {'SYS_1P8V': 'SYS_1P8V(HBM_1P8V)'};
+                        const railMap = {};
+                        data.smc_pwr.rails.forEach(r => { railMap[r.name] = r; });
+                        let railHtml = '';
+                        order.forEach(name => {
+                            const r = railMap[name];
+                            if (r) {
+                                const label = displayNames[name] || name;
+                                const isFullWidth = name === 'INPUT_12V';
+                                const noCurrentData = (name === 'SYS_3P3V');
+                                const pw = noCurrentData ? '-' : (r.power_w != null ? r.power_w.toFixed(1) + 'W' : 'N/A');
+                                const vm = r.voltage_mv != null ? (r.voltage_mv / 1000).toFixed(3) + 'V' : '-';
+                                const cm = noCurrentData ? '-' : (r.current_ma != null ? (r.current_ma / 1000).toFixed(2) + 'A' : '-');
+                                const spanStyle = isFullWidth ? ' style="grid-column:1/-1;"' : '';
+                                railHtml += `<div class="rail-card"${spanStyle}><h4>${label}</h4><div><span class="rail-val">${pw}</span></div><div style="font-size:10px;color:#888;">${vm} / ${cm}</div></div>`;
+                            }
+                        });
+                        document.getElementById('rail-cards').innerHTML = railHtml;
+                    } else if (data.smc_pwr && !data.smc_pwr.available) {
+                        document.getElementById('rail-cards').innerHTML = '<div style="font-size:11px;color:#999;padding:8px;grid-column:1/-1;">POWEROFF_SUDO_PASSWORD 환경변수 필요</div>';
+                    }
+
+                    // Update Chart Data
+                    if (!isChartPaused) {
+                        const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+                        chartData.labels.push(now);
+                        chartData.totalPower.push(power);
+                        
+                        if (data.smc_pwr && data.smc_pwr.rails) {
+                            const railMap = {};
+                            data.smc_pwr.rails.forEach(r => { railMap[r.name] = r; });
+                            chartData.rails.CORE0.push(railMap['CORE0_0P75V']?.power_w || 0);
+                            chartData.rails.CORE1.push(railMap['CORE1_0P75V']?.power_w || 0);
+                            chartData.rails.UCIE.push(railMap['UCIE_0P75V']?.power_w || 0);
+                            chartData.rails.HBM1.push(railMap['HBM_1P1V']?.power_w || 0);
+                            chartData.rails.HBM0.push(railMap['HBM_0P85V']?.power_w || 0);
+                            chartData.rails.HBM04T.push(railMap['HBM_0P4V_TOP']?.power_w || 0);
+                            chartData.rails.HBM04B.push(railMap['HBM_0P4V_BOT']?.power_w || 0);
+                            chartData.rails.SYS18.push(railMap['SYS_1P8V']?.power_w || 0);
+                            chartData.rails.AVDD12.push(railMap['AVDD_1P2V']?.power_w || 0);
+                            chartData.rails.PCIE085.push(railMap['PCIE_0P85V']?.power_w || 0);
+                        } else {
+                            chartData.rails.CORE0.push(0); chartData.rails.CORE1.push(0);
+                            chartData.rails.UCIE.push(0); chartData.rails.HBM1.push(0); chartData.rails.HBM0.push(0);
+                            chartData.rails.HBM04T.push(0); chartData.rails.HBM04B.push(0);
+                            chartData.rails.SYS18.push(0); chartData.rails.AVDD12.push(0); chartData.rails.PCIE085.push(0);
+                        }
+
+                        chartData.temps.NPU.push(temp);
+                        chartData.temps.C0.push(device.dram_temp?.[0] || 0);
+                        chartData.temps.C1.push(device.dram_temp?.[1] || 0);
+                        chartData.temps.C2.push(device.dram_temp?.[2] || 0);
+                        chartData.temps.C3.push(device.dram_temp?.[3] || 0);
+
+                        if (chartData.labels.length > maxChartPoints) {
+                            chartData.labels.shift();
+                            chartData.totalPower.shift();
+                            chartData.rails.CORE0.shift(); chartData.rails.CORE1.shift();
+                            chartData.rails.UCIE.shift(); chartData.rails.HBM1.shift(); chartData.rails.HBM0.shift();
+                            chartData.rails.HBM04T.shift(); chartData.rails.HBM04B.shift();
+                            chartData.rails.SYS18.shift(); chartData.rails.AVDD12.shift(); chartData.rails.PCIE085.shift();
+                            chartData.temps.NPU.shift(); chartData.temps.C0.shift();
+                            chartData.temps.C1.shift(); chartData.temps.C2.shift(); chartData.temps.C3.shift();
+                        }
+
+                        updateCharts();
+                    }
+
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // ============ 워크로드 관리 ============
+        async function loadWorkloadFolders() {
+            try {
+                const response = await fetch('/api/workload-folders');
+                const data = await response.json();
+
+                if (data.success) {
+                    const select = document.getElementById('workload-folder');
+                    select.innerHTML = '';
+
+                    data.folders.forEach(folder => {
+                        const option = document.createElement('option');
+                        option.value = folder;
+                        option.textContent = folder;
+                        if (folder === data.default) {
+                            option.selected = true;
+                            selectedWorkloadFolder = folder;
+                        }
+                        select.appendChild(option);
+                    });
+
+                    // 기본 폴더로 워크로드 로드
+                    loadWorkloads();
+                }
+            } catch (error) {
+                console.error('Error loading workload folders:', error);
+            }
+        }
+
+        function onWorkloadFolderChange() {
+            const select = document.getElementById('workload-folder');
+            selectedWorkloadFolder = select.value;
+            selectedWorkload = null;
+            document.querySelectorAll('.workload-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById('btn-run').disabled = true;
+            loadWorkloads();
+        }
+
+        async function loadWorkloads() {
+            try {
+                const url = selectedWorkloadFolder ? `/api/workloads?workload_dir=${encodeURIComponent(selectedWorkloadFolder)}` : '/api/workloads';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    const listContainer = document.getElementById('workload-list');
+
+                    if (data.workloads.length === 0) {
+                        listContainer.innerHTML = '<div class="empty-state"><p>워크로드 없음</p></div>';
+                    } else {
+                        listContainer.innerHTML = data.workloads
+                            .map(workload => {
+                                const isScript = workload.endsWith('.sh');
+                                const icon = isScript ? '⚙️ [GROUP]' : '📂 [BIN]';
+                                return `
+                                <div class="workload-item" onclick="selectWorkload('${workload}', this)">
+                                    ${icon} ${workload}
+                                </div>
+                            `;
+                            })
+                            .join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function selectWorkload(workload, element) {
+            document.querySelectorAll('.workload-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedWorkload = workload;
+            document.getElementById('btn-run').disabled = false;
+        }
+
+        async function runWorkload() {
+            if (!selectedWorkload) {
+                alert('워크로드를 선택하세요');
+                return;
+            }
+
+            if (!selectedWorkloadFolder) {
+                alert('워크로드 폴더를 선택하세요');
+                return;
+            }
+
+            const execTime = parseInt(document.getElementById('exec-time').value);
+
+            if (isNaN(execTime) || execTime <= 0) {
+                alert('유효한 시간을 입력하세요');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        workload: selectedWorkload, 
+                        exec_time: execTime,
+                        workload_dir: selectedWorkloadFolder,
+                        save_log: document.getElementById('chk-save-log').checked,
+                        log_path: '/home/rebellions/yeun/testvector-server/logs'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentJob = data.job_id;
+                    document.getElementById('btn-run').disabled = true;
+                    document.getElementById('btn-cancel').disabled = false;
+                    startProgressMonitoring(currentJob, execTime);
+                } else {
+                    alert('실행 실패: ' + data.error);
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        async function startProgressMonitoring(jobId, execTime) {
+            const progressDisplay = document.getElementById('progress-display');
+            const logBox = document.getElementById('live-log-box');
+            logOffset = 0;
+            logBox.textContent = '[로그 스트리밍 시작]\n';
+
+            progressDisplay.innerHTML = `
+                <div class="progress-content">
+                    <div class="progress-stage">
+                        <span class="spinner"></span>⏳ 준비 중...
+                    </div>
+                </div>
+            `;
+
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/job/${jobId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const job = data.job;
+                        await appendLiveLogs(jobId);
+                        updateProgressDisplay(job, execTime);
+
+                        if (job.status === 'completed' || job.status === 'error' || job.status === 'cancelled') {
+                            await appendLiveLogs(jobId);
+                            clearInterval(pollInterval);
+                            document.getElementById('btn-run').disabled = false;
+                            document.getElementById('btn-cancel').disabled = true;
+
+                            if (job.status === 'completed' && document.getElementById('chk-auto-download').checked) {
+                                window.location.href = '/api/job/' + jobId + '/download';
+                            }
+
+                            currentJob = null;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }, 500);
+        }
+
+        function updateProgressDisplay(job, execTime) {
+            const progressDisplay = document.getElementById('progress-display');
+            const progress = job.progress;
+
+            if (job.status === 'preparing') {
+                progressDisplay.innerHTML = `
+                    <div class="progress-content">
+                        <div class="progress-stage">
+                            <span class="spinner"></span>⏳ 준비중..... (${progress.elapsed}초)
+                        </div>
+                    </div>
+                `;
+            } else if (job.status === 'running') {
+                const percentage = progress.percentage;
+                const barLength = Math.floor(40 * percentage / 100);
+                const bar = '='.repeat(barLength) + '-'.repeat(40 - barLength);
+
+                progressDisplay.innerHTML = `
+                    <div class="progress-content">
+                        <div class="progress-stage">🔄 실행 중...</div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            [${bar}] ${percentage}% (${progress.elapsed}/${execTime}초)
+                        </div>
+                    </div>
+                `;
+            } else if (job.status === 'completed') {
+                const output = job.result?.output || '';
+                const reportLine = output.split('\n').find(l => l.includes('Report:')) || '완료됨';
+
+                progressDisplay.innerHTML = `
+                    <div class="progress-content">
+                        <div class="progress-stage">✅ 완료!</div>
+                        <div class="result-box">${reportLine}</div>
+                    </div>
+                `;
+            } else if (job.status === 'error') {
+                progressDisplay.innerHTML = `
+                    <div class="progress-content">
+                        <div class="progress-stage">❌ 오류</div>
+                        <div class="result-box error">${job.result?.error || '오류 발생'}</div>
+                    </div>
+                `;
+            }
+        }
+
+        async function appendLiveLogs(jobId) {
+            try {
+                const response = await fetch(`/api/job/${jobId}/logs?offset=${logOffset}`);
+                const data = await response.json();
+
+                if (!data.success) return;
+
+                const logBox = document.getElementById('live-log-box');
+                if (typeof data.logs === 'string' && data.logs.length > 0) {
+                    const nearBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 24;
+                    logBox.textContent += data.logs;
+
+                    const maxChars = 300000;
+                    if (logBox.textContent.length > maxChars) {
+                        logBox.textContent = logBox.textContent.slice(logBox.textContent.length - maxChars);
+                    }
+
+                    if (nearBottom) {
+                        logBox.scrollTop = logBox.scrollHeight;
+                    }
+                }
+
+                if (typeof data.next_offset === 'number') {
+                    logOffset = data.next_offset;
+                }
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        async function cancelWorkload() {
+            if (!currentJob) return;
+
+            try {
+                lastCancelledJob = currentJob;
+                await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
+                clearInterval(pollInterval);
+                pollInterval = null;
+                currentJob = null;
+
+                document.getElementById('btn-run').disabled = !selectedWorkload;
+                document.getElementById('btn-cancel').disabled = true;
+                document.getElementById('progress-display').innerHTML = `
+                    <div class="progress-content">
+                        <div class="progress-stage">🚫 취소됨</div>
+                    </div>
+                `;
+                setTimeout(() => { lastCancelledJob = null; }, 5000);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
