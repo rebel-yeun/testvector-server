@@ -680,7 +680,6 @@
                 <div class="client-ips" id="client-ips">
                     <!-- IP badges will go here -->
                 </div>
-                <button class="btn btn-poweroff" onclick="powerOff()">⏻ Power Off</button>
             </div>
         </div>
         <div class="conflict-banner" id="conflict-banner">
@@ -733,6 +732,8 @@
                     <span class="interval-text" id="interval-display">1.0s</span>
                     <input type="range" id="sysinfo-interval" min="1000" max="3000" step="1000" value="1000" oninput="updateIntervalDisplay(this.value)" onchange="setSysinfoInterval(this.value)">
                 </label>
+                <button class="btn" onclick="hardResetNPU()" style="background:#ff9800;color:#fff;font-size:11px;padding:5px 12px;margin-left:10px;">🔄 NPU Reset</button>
+                <button class="btn btn-poweroff" onclick="powerOff()" style="font-size:11px;padding:5px 12px;">⏻ Power Off</button>
             </div>
         </div>
 
@@ -1840,6 +1841,22 @@
                 `;
             } catch (error) {
                 console.error('Error:', error);
+            }
+        }
+
+        async function hardResetNPU() {
+            if (!confirm('NPU 카드를 Hard Reset 하시겠습니까?')) return;
+
+            try {
+                const res = await fetch('/api/system/npu-reset', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('NPU Hard Reset 완료');
+                } else {
+                    alert('NPU Reset 실패: ' + data.error);
+                }
+            } catch (e) {
+                alert('요청 실패: ' + e.message);
             }
         }
 

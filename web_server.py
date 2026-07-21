@@ -1235,6 +1235,27 @@ def get_system_info():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/system/npu-reset', methods=['POST'])
+def system_npu_reset():
+    if not POWEROFF_SUDO_PASSWORD:
+        return jsonify({'success': False, 'error': 'POWEROFF_SUDO_PASSWORD가 설정되지 않았습니다.'}), 503
+
+    try:
+        result = subprocess.run(
+            ('sudo', '-S', '-p', '', 'tee', '/sys/class/rebellions/rsd0/hard_reset'),
+            input=POWEROFF_SUDO_PASSWORD + '\n1\n',
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        if result.returncode != 0:
+            return jsonify({'success': False, 'error': result.stderr.strip()}), 500
+        return jsonify({'success': True, 'message': 'NPU Hard Reset 완료'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/system/poweroff', methods=['POST'])
 def system_poweroff():
     if not POWEROFF_SUDO_PASSWORD:
