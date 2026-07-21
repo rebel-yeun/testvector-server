@@ -874,7 +874,8 @@
         let batchJobIds = [];
         let batchPollInterval = null;
         let executionQueue = [];
-        let currentBatchId = null;  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
+        let currentBatchId = null;
+        let cancelledJobIds = [];  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
 
         // Chart variables
         let powerTempChart, hbmDramChart, railCore0Chart, railCore1UcieChart, railEtcChart;
@@ -1212,6 +1213,7 @@
                 const isOtherRunning = data.running_job 
                     && (!currentJob || data.running_job.job_id !== currentJob)
                     && !batchJobIds.includes(data.running_job.job_id)
+                    && !cancelledJobIds.includes(data.running_job.job_id)
                     && data.running_job.job_id !== lastCancelledJob;
                 
                 if (isOtherRunning) {
@@ -1851,8 +1853,10 @@
                 if (currentBatchId) {
                     await fetch(`/api/batch/${currentBatchId}/cancel`, { method: 'POST' });
                     if (batchPollInterval) { clearInterval(batchPollInterval); batchPollInterval = null; }
+                    cancelledJobIds = [...batchJobIds];
                     batchJobIds = [];
                     currentBatchId = null;
+                    setTimeout(() => { cancelledJobIds = []; }, 10000);
                 } else if (currentJob) {
                     await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
                     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
