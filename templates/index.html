@@ -1356,11 +1356,11 @@
                     const select = document.getElementById('workload-folder');
                     select.innerHTML = '';
 
-                    data.folders.forEach(folder => {
+                    data.folders.forEach((folder, idx) => {
                         const option = document.createElement('option');
                         option.value = folder;
                         option.textContent = folder;
-                        if (folder === data.default) {
+                        if (folder === data.default || (!data.default && idx === 0)) {
                             option.selected = true;
                             selectedWorkloadFolder = folder;
                         }
@@ -1438,6 +1438,7 @@
         function addToQueue() {
             const selected = getSelectedWorkloads();
             if (selected.length === 0) { alert('추가할 벡터를 선택하세요'); return; }
+            if (!selectedWorkloadFolder) { alert('워크로드 폴더를 선택하세요'); return; }
             selected.forEach(w => {
                 if (!executionQueue.find(q => q.type === 'single' && q.workload === w && q.workload_dir === selectedWorkloadFolder)) {
                     executionQueue.push({type: 'single', workload: w, workload_dir: selectedWorkloadFolder});
@@ -1461,6 +1462,7 @@
         function addGroupToQueue() {
             const selected = getSelectedWorkloads();
             if (selected.length === 0) { alert('그룹에 추가할 벡터를 선택하세요'); return; }
+            if (!selectedWorkloadFolder) { alert('워크로드 폴더를 선택하세요'); return; }
             const groupable = selected.filter(isGroupableVector);
             if (groupable.length === 0) { alert('bert, retinanet, resnet 벡터만 그룹 추가 가능합니다'); return; }
             if (groupable.length !== selected.length) { alert('그룹 추가 불가: bert/retinanet/resnet 외의 벡터가 포함되어 있습니다'); return; }
