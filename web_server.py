@@ -1242,8 +1242,8 @@ def system_npu_reset():
 
     try:
         result = subprocess.run(
-            ('sudo', '-S', '-p', '', 'tee', '/sys/class/rebellions/rsd0/hard_reset'),
-            input=POWEROFF_SUDO_PASSWORD + '\n1\n',
+            ('sudo', '-S', '-p', '', 'bash', '-c', 'echo 1 > /sys/class/rebellions/rsd0/hard_reset'),
+            input=POWEROFF_SUDO_PASSWORD + '\n',
             capture_output=True,
             text=True,
             timeout=10
