@@ -22,4 +22,12 @@ def create_app(config=None):
     bp = import_module(f'{__name__}.routes').bp
     app.register_blueprint(bp)
 
+    @app.after_request
+    def add_no_cache(response):
+        if 'text/html' in response.content_type:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        return response
+
     return app

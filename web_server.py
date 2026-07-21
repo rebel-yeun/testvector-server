@@ -37,6 +37,14 @@ _load_env_file(_PROJECT_ROOT / '.env')
 
 app = Flask(__name__)
 
+@app.after_request
+def add_no_cache(response):
+    if 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
 # 기본 워크로드 폴더 경로
 DEFAULT_WORKLOAD_DIR = "/home/rebellions/yeun/testvector/cr13/v3.2.0"
 JOBS_DIR = "/home/rebellions/yeun/jobs"
