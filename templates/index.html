@@ -1211,6 +1211,7 @@
                 const runBtn = document.getElementById('btn-run');
                 const isOtherRunning = data.running_job 
                     && (!currentJob || data.running_job.job_id !== currentJob)
+                    && !batchJobIds.includes(data.running_job.job_id)
                     && data.running_job.job_id !== lastCancelledJob;
                 
                 if (isOtherRunning) {
@@ -1218,15 +1219,15 @@
                         banner.innerHTML = `⚠️ ${data.running_job.client_ip}에서 ${data.running_job.workload} 실행 중 (${data.running_job.progress?.percentage || 0}%)`;
                         banner.classList.add('active');
                     }
-                    if (runBtn && !currentJob) {
+                    if (runBtn && !currentJob && batchJobIds.length === 0) {
                         runBtn.disabled = true;
                     }
                 } else {
                     if (banner) {
                         banner.classList.remove('active');
                     }
-                    if (runBtn && !currentJob && selectedWorkload) {
-                        runBtn.disabled = false;
+                    if (runBtn && !currentJob && batchJobIds.length === 0) {
+                        runBtn.disabled = executionQueue.length === 0;
                     }
                 }
 
