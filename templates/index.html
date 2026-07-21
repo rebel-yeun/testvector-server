@@ -1672,6 +1672,8 @@
                     const pct = Math.round(completedItems / totalQueueItems * 100);
                     const isDone = completedItems === totalQueueItems;
 
+                    if (batchCancelled) return;
+
                     const activeText = activeItems.length > 0
                         ? activeItems.join(', ')
                         : (isDone ? '' : '대기 중...');
