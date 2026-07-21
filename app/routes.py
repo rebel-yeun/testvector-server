@@ -223,6 +223,7 @@ def run_workload():
             'error': str(e)
         }), 500
 
+cancelled_batches = set()
 
 VECTOR_GROUPS = {
     'bert_large': ['bert_large', 'bert_chiplet', 'rebel_bert_chiplet'],
@@ -406,10 +407,15 @@ def run_queue():
 
         def execute_queue():
             for plan_item in queue_plan:
+                if batch_id in cancelled_batches:
+                    break
                 if plan_item['type'] == 'single':
                     jid = plan_item['job_id']
                     run_workload_background(jid, plan_item['path'], exec_time, False, job_manager, cfg)
                     while True:
+                        if batch_id in cancelled_batches:
+                            job_manager.cancel_job(jid)
+                            break
                         job = job_manager.get_job(jid)
                         if not job or job['status'] in ('completed', 'error', 'cancelled'):
                             break
@@ -427,6 +433,8 @@ def run_queue():
                         threads.append(t)
                     for t in threads:
                         t.join()
+
+            cancelled_batches.discard(batch_id)
 
         thread = threading.Thread(target=execute_queue, daemon=True)
         thread.start()
@@ -680,6 +688,20 @@ def get_system_info():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@bp.route('/api/batch/<batch_id>/cancel', methods=['POST'])
+def cancel_batch(batch_id):
+    job_manager = _job_manager()
+    cancelled_batches.add(batch_id)
+    cancelled_jobs = []
+    with job_manager.lock:
+        for jid, job in job_manager.jobs.items():
+            if job.get('batch_id') == batch_id and job['status'] not in ('completed', 'error', 'cancelled'):
+                cancelled_jobs.append(jid)
+    for jid in cancelled_jobs:
+        job_manager.cancel_job(jid)
+    return jsonify({'success': True, 'cancelled': len(cancelled_jobs)})
 
 
 @bp.route('/api/system/npu-reset', methods=['POST'])

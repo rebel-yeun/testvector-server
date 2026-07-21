@@ -784,8 +784,11 @@
                                 <button class="btn btn-run" id="btn-run" onclick="runQueue()" disabled>
                                     Run
                                 </button>
-                                <button class="btn btn-cancel" id="btn-cancel" onclick="cancelWorkload()" disabled>
+                                <button class="btn btn-cancel" id="btn-cancel-current" onclick="cancelCurrent()" disabled>
                                     Cancel
+                                </button>
+                                <button class="btn btn-cancel" id="btn-cancel-all" onclick="cancelAll()" disabled style="background:#d32f2f;">
+                                    Cancel All
                                 </button>
                             </div>
                         </div>
@@ -870,7 +873,8 @@
         let selectedGroups = [];
         let batchJobIds = [];
         let batchPollInterval = null;
-        let executionQueue = [];  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
+        let executionQueue = [];
+        let currentBatchId = null;  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
 
         // Chart variables
         let powerTempChart, hbmDramChart, railCore0Chart, railCore1UcieChart, railEtcChart;
@@ -1578,8 +1582,9 @@
                 const data = await response.json();
                 if (data.success) {
                     document.getElementById('btn-run').disabled = true;
-                    document.getElementById('btn-cancel').disabled = false;
+                    document.getElementById('btn-cancel-current').disabled = false; document.getElementById('btn-cancel-all').disabled = false;
                     batchJobIds = data.job_ids;
+                    currentBatchId = data.batch_id;
                     startQueueMonitoring(data.job_ids, execTime, executionQueue);
                 } else {
                     alert('실행 실패: ' + data.error);
@@ -1677,7 +1682,7 @@
                     if (isDone) {
                         clearInterval(batchPollInterval);
                         document.getElementById('btn-run').disabled = false;
-                        document.getElementById('btn-cancel').disabled = true;
+                        document.getElementById('btn-cancel-current').disabled = true; document.getElementById('btn-cancel-all').disabled = true;
                         logBox.textContent += `\n[실행 완료: ${totalQueueItems}건, 실패 ${errorItems}건]\n`;
                         if (errorItems === 0 && document.getElementById('chk-auto-download').checked && jobIds.length === 1) {
                             window.location.href = '/api/job/' + jobIds[0] + '/download';
@@ -1715,7 +1720,7 @@
                             await appendLiveLogs(jobId);
                             clearInterval(pollInterval);
                             document.getElementById('btn-run').disabled = false;
-                            document.getElementById('btn-cancel').disabled = true;
+                            document.getElementById('btn-cancel-current').disabled = true; document.getElementById('btn-cancel-all').disabled = true;
 
                             if (job.status === 'completed' && document.getElementById('chk-auto-download').checked) {
                                 window.location.href = '/api/job/' + jobId + '/download';
@@ -1808,31 +1813,52 @@
             }
         }
 
-        async function cancelWorkload() {
-            if (!currentJob && batchJobIds.length === 0) return;
+        async function cancelCurrent() {
+            if (batchJobIds.length === 0 && !currentJob) return;
 
             try {
                 if (batchJobIds.length > 0) {
                     for (const jid of batchJobIds) {
-                        await fetch(`/api/job/${jid}/cancel`, { method: 'POST' });
+                        const res = await fetch(`/api/job/${jid}`);
+                        const d = await res.json();
+                        if (d.success && (d.job.status === 'running' || d.job.status === 'preparing')) {
+                            await fetch(`/api/job/${jid}/cancel`, { method: 'POST' });
+                        }
                     }
-                    clearInterval(batchPollInterval);
-                    batchPollInterval = null;
-                    batchJobIds = [];
                 } else if (currentJob) {
-                    lastCancelledJob = currentJob;
                     await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
                     clearInterval(pollInterval);
                     pollInterval = null;
                     currentJob = null;
-                    setTimeout(() => { lastCancelledJob = null; }, 5000);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function cancelAll() {
+            if (!currentBatchId && !currentJob) return;
+            if (!confirm('전체 대기열을 취소하시겠습니까?')) return;
+
+            try {
+                if (currentBatchId) {
+                    await fetch(`/api/batch/${currentBatchId}/cancel`, { method: 'POST' });
+                    clearInterval(batchPollInterval);
+                    batchPollInterval = null;
+                    batchJobIds = [];
+                    currentBatchId = null;
+                } else if (currentJob) {
+                    await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    currentJob = null;
                 }
 
                 document.getElementById('btn-run').disabled = executionQueue.length === 0;
-                document.getElementById('btn-cancel').disabled = true;
+                document.getElementById('btn-cancel-current').disabled = true; document.getElementById('btn-cancel-all').disabled = true;
                 document.getElementById('progress-display').innerHTML = `
                     <div class="progress-content">
-                        <div class="progress-stage">🚫 취소됨</div>
+                        <div class="progress-stage">🚫 전체 취소됨</div>
                     </div>
                 `;
             } catch (error) {

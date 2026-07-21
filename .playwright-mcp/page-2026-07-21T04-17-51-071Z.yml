@@ -1,0 +1,181 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "📋 워크로드 실행 시스템" [level=1] [ref=e6]
+      - paragraph [ref=e7]: 시스템 모니터링 & 워크로드 실행 통합 대시보드
+    - generic [ref=e56]: 🟢 127.0.0.1
+    - button "⏻ Power Off" [ref=e8] [cursor=pointer]
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - heading "온도" [level=3] [ref=e11]
+      - generic [ref=e12]: 47°C
+    - generic [ref=e14]:
+      - heading "전력" [level=3] [ref=e15]
+      - generic [ref=e16]: 186.7W
+    - generic [ref=e18]:
+      - heading "메모리" [level=3] [ref=e19]
+      - generic [ref=e20]: 0.0GB
+    - generic [ref=e22]:
+      - heading "유틸" [level=3] [ref=e23]
+      - generic [ref=e24]: 0.0%
+  - generic [ref=e26]:
+    - button "📋 워크로드 실행" [active] [ref=e27] [cursor=pointer]
+    - button "📊 실시간 그래프" [ref=e28] [cursor=pointer]
+    - generic [ref=e29]:
+      - generic [ref=e30] [cursor=pointer]: rbln sysinfo
+      - generic [ref=e33]:
+        - generic [ref=e34]: 1.0s
+        - slider "1.0s" [ref=e35] [cursor=pointer]: "1000"
+  - generic [ref=e60]:
+    - generic [ref=e61]:
+      - heading "📦 워크로드" [level=2] [ref=e63]
+      - generic [ref=e64]:
+        - generic [ref=e65]: Vector Groups
+        - generic [ref=e67] [cursor=pointer]:
+          - checkbox "🔀 bert_large (idx 0~3 병렬)" [ref=e68]
+          - text: 🔀 bert_large (idx 0~3 병렬)
+        - generic [ref=e70] [cursor=pointer]:
+          - checkbox "🔀 retinanet (idx 0~3 병렬)" [ref=e71]
+          - text: 🔀 retinanet (idx 0~3 병렬)
+        - generic [ref=e73] [cursor=pointer]:
+          - checkbox "🔀 resnet50_ss (idx 0~3 병렬)" [ref=e74]
+          - text: 🔀 resnet50_ss (idx 0~3 병렬)
+        - generic [ref=e76] [cursor=pointer]:
+          - checkbox "🔀 resnet50_ms (idx 0~3 병렬)" [ref=e77]
+          - text: 🔀 resnet50_ms (idx 0~3 병렬)
+        - generic [ref=e79] [cursor=pointer]: 📂 [BIN] bert_large_0_0.bin
+        - generic [ref=e80] [cursor=pointer]: 📂 [BIN] bert_large_1_0.bin
+        - generic [ref=e81] [cursor=pointer]: 📂 [BIN] bert_large_2_0.bin
+        - generic [ref=e82] [cursor=pointer]: 📂 [BIN] bert_large_3_0.bin
+        - generic [ref=e83] [cursor=pointer]: 📂 [BIN] dcl_hbmx2p3_max_evt1.bin
+        - generic [ref=e84] [cursor=pointer]: 📂 [BIN] dcl_uciex2p3_max_evt1.bin
+        - generic [ref=e85] [cursor=pointer]: 📂 [BIN] gpt-oss-120b_b1_rsd4_0.bin
+        - generic [ref=e86] [cursor=pointer]: 📂 [BIN] gpt-oss-120b_b4_rsd4_0.bin
+        - generic [ref=e87] [cursor=pointer]: 📂 [BIN] hbm_max_read_only_evt1.bin
+        - generic [ref=e88] [cursor=pointer]: 📂 [BIN] llama2-7b_b1_rsd4_0.bin
+        - generic [ref=e89] [cursor=pointer]: 📂 [BIN] llama3.2-3b_b4_rsd4_0.bin
+        - generic [ref=e90] [cursor=pointer]: 📂 [BIN] llama3.3-70b-kv_b1_rsd4_0.bin
+        - generic [ref=e91] [cursor=pointer]: 📂 [BIN] qllama_70b_fp8_b1_rsd4.bin
+        - generic [ref=e92] [cursor=pointer]: 📂 [BIN] qwen2-7b_b1_rsd4_0.bin
+        - generic [ref=e93] [cursor=pointer]: 📂 [BIN] rblntrace_202605180533-qwen2-7b-b32_0.bin
+        - generic [ref=e94] [cursor=pointer]: 📂 [BIN] rblntrace_hbm_max_lpudma_mix_0.bin
+        - generic [ref=e95] [cursor=pointer]: 📂 [BIN] rblntrace_hbm_max_lpudma_mix_1.bin
+        - generic [ref=e96] [cursor=pointer]: 📂 [BIN] resnet50_ms_0_0.bin
+        - generic [ref=e97] [cursor=pointer]: 📂 [BIN] resnet50_ms_1_0.bin
+        - generic [ref=e98] [cursor=pointer]: 📂 [BIN] resnet50_ms_2_0.bin
+        - generic [ref=e99] [cursor=pointer]: 📂 [BIN] resnet50_ms_3_0.bin
+        - generic [ref=e100] [cursor=pointer]: 📂 [BIN] resnet50_ss_0_0.bin
+        - generic [ref=e101] [cursor=pointer]: 📂 [BIN] resnet50_ss_1_0.bin
+        - generic [ref=e102] [cursor=pointer]: 📂 [BIN] resnet50_ss_2_0.bin
+        - generic [ref=e103] [cursor=pointer]: 📂 [BIN] resnet50_ss_3_0.bin
+        - generic [ref=e104] [cursor=pointer]: 📂 [BIN] retinanet_0_0.bin
+        - generic [ref=e105] [cursor=pointer]: 📂 [BIN] retinanet_1_0.bin
+        - generic [ref=e106] [cursor=pointer]: 📂 [BIN] retinanet_2_0.bin
+        - generic [ref=e107] [cursor=pointer]: 📂 [BIN] retinanet_3_0.bin
+        - generic [ref=e108] [cursor=pointer]: 📂 [BIN] tdp_mx2_max_evt1.bin
+        - generic [ref=e109] [cursor=pointer]: 📂 [BIN] tdp_mx2p2_max_evt1.bin
+    - generic [ref=e110]:
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - heading "▶️ 실행 설정" [level=3] [ref=e113]
+          - generic [ref=e114]:
+            - generic [ref=e115]: "워크로드 폴더:"
+            - combobox "워크로드 폴더:" [ref=e116]:
+              - option "cr13/v3.2.0" [selected]
+              - option "cr13_stc_new"
+              - option "cr23"
+              - option "cr13/v3.3.0"
+              - option "cr13/v3.2.0/dump"
+          - generic [ref=e117]:
+            - generic [ref=e118]: "시간(초):"
+            - spinbutton "시간(초):" [ref=e119]: "10"
+            - generic [ref=e120]:
+              - button "Run" [disabled] [ref=e121]
+              - button "Group Run" [disabled] [ref=e122]
+              - button "전체선택" [ref=e123] [cursor=pointer]
+              - button "Cancel" [disabled] [ref=e124]
+          - generic [ref=e125]:
+            - generic [ref=e126] [cursor=pointer]:
+              - checkbox "로그 자동 저장(서버)" [ref=e127]
+              - text: 로그 자동 저장(서버)
+            - generic [ref=e128] [cursor=pointer]:
+              - checkbox "완료시 자동 다운로드(로컬)" [ref=e129]
+              - text: 완료시 자동 다운로드(로컬)
+        - generic [ref=e130]:
+          - heading "▶️ 진행 상황" [level=3] [ref=e131]
+          - generic [ref=e133]:
+            - generic [ref=e134]: ⏸️
+            - paragraph [ref=e135]: 워크로드를 선택 후 Run
+      - generic [ref=e137]:
+        - generic [ref=e138]:
+          - heading "⚡ Power Rails" [level=3] [ref=e139]
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - heading "INPUT_12V" [level=4] [ref=e142]
+              - generic [ref=e143]: 186.7W
+              - generic [ref=e144]: 12.349V / 15.12A
+            - generic [ref=e145]:
+              - heading "CORE0_0P75V" [level=4] [ref=e146]
+              - generic [ref=e147]: 58.5W
+              - generic [ref=e148]: 0.750V / 78.00A
+            - generic [ref=e149]:
+              - heading "CORE1_0P75V" [level=4] [ref=e150]
+              - generic [ref=e151]: 15.0W
+              - generic [ref=e152]: 0.750V / 20.00A
+            - generic [ref=e153]:
+              - heading "UCIE_0P75V" [level=4] [ref=e154]
+              - generic [ref=e155]: 39.1W
+              - generic [ref=e156]: 0.790V / 49.50A
+            - generic [ref=e157]:
+              - heading "PCIE_0P85V" [level=4] [ref=e158]
+              - generic [ref=e159]: 2.7W
+              - generic [ref=e160]: 0.867V / 3.10A
+            - generic [ref=e161]:
+              - heading "HBM_1P1V" [level=4] [ref=e162]
+              - generic [ref=e163]: 16.0W
+              - generic [ref=e164]: 1.105V / 14.50A
+            - generic [ref=e165]:
+              - heading "HBM_0P85V" [level=4] [ref=e166]
+              - generic [ref=e167]: 24.7W
+              - generic [ref=e168]: 0.950V / 26.00A
+            - generic [ref=e169]:
+              - heading "HBM_0P4V_TOP" [level=4] [ref=e170]
+              - generic [ref=e171]: 0.0W
+              - generic [ref=e172]: 0.440V / 0.00A
+            - generic [ref=e173]:
+              - heading "HBM_0P4V_BOT" [level=4] [ref=e174]
+              - generic [ref=e175]: 0.0W
+              - generic [ref=e176]: 0.440V / 0.00A
+            - generic [ref=e177]:
+              - heading "SYS_1P8V(HBM_1P8V)" [level=4] [ref=e178]
+              - generic [ref=e179]: 3.2W
+              - generic [ref=e180]: 1.801V / 1.78A
+            - generic [ref=e181]:
+              - heading "AVDD_1P2V" [level=4] [ref=e182]
+              - generic [ref=e183]: 3.4W
+              - generic [ref=e184]: 1.217V / 2.83A
+            - generic [ref=e185]:
+              - heading "SYS_3P3V" [level=4] [ref=e186]
+              - generic [ref=e187]: "-"
+              - generic [ref=e188]: 3.260V / -
+        - generic [ref=e189]:
+          - heading "💻 Device Info" [level=3] [ref=e190]
+          - generic [ref=e191]:
+            - generic [ref=e192]:
+              - generic [ref=e193]: "DRAM Temps:"
+              - generic [ref=e194]: "C0: 46℃, C1: 45℃, C2: 46℃, C3: 44℃"
+            - generic [ref=e195]:
+              - generic [ref=e196]: "Throttling:"
+              - generic [ref=e197]: "No"
+            - generic [ref=e198]:
+              - generic [ref=e199]: "P-State:"
+              - generic [ref=e200]: P2
+            - generic [ref=e201]:
+              - generic [ref=e202]: "Chiplet Util:"
+              - generic [ref=e203]: 0.0%, 0.0%, 0.0%, 0.0%
+            - generic [ref=e204]:
+              - generic [ref=e205]: "Voltage:"
+              - generic [ref=e206]: 12349mV
+            - generic [ref=e207]:
+              - generic [ref=e208]: "Current:"
+              - generic [ref=e209]: 15119mA

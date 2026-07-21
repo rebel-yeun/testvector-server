@@ -87,6 +87,8 @@ POWEROFF_SUDO_PASSWORD = os.environ.get('POWEROFF_SUDO_PASSWORD', '')
 SUDO_CMD = ('sudo', '-S', '-p', '')
 SUDO_INPUT = POWEROFF_SUDO_PASSWORD + '\n' if POWEROFF_SUDO_PASSWORD else None
 
+cancelled_batches = set()
+
 SMC_PWR_RAIL_MAP = {
     'efuse': 'INPUT_12V',
     'rebel_core0': 'CORE0_0P75V',
@@ -943,10 +945,15 @@ def run_queue():
 
         def execute_queue():
             for plan_item in queue_plan:
+                if batch_id in cancelled_batches:
+                    break
                 if plan_item['type'] == 'single':
                     jid = plan_item['job_id']
                     run_workload_background(jid, plan_item['path'], exec_time, False)
                     while True:
+                        if batch_id in cancelled_batches:
+                            job_manager.cancel_job(jid)
+                            break
                         job = job_manager.get_job(jid)
                         if not job or job['status'] in ('completed', 'error', 'cancelled'):
                             break
@@ -964,6 +971,8 @@ def run_queue():
                         threads.append(t)
                     for t in threads:
                         t.join()
+
+            cancelled_batches.discard(batch_id)
 
         thread = threading.Thread(target=execute_queue, daemon=True)
         thread.start()
@@ -1233,6 +1242,19 @@ def get_system_info():
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/batch/<batch_id>/cancel', methods=['POST'])
+def cancel_batch(batch_id):
+    cancelled_batches.add(batch_id)
+    cancelled_jobs = []
+    with job_manager.lock:
+        for jid, job in job_manager.jobs.items():
+            if job.get('batch_id') == batch_id and job['status'] not in ('completed', 'error', 'cancelled'):
+                cancelled_jobs.append(jid)
+    for jid in cancelled_jobs:
+        job_manager.cancel_job(jid)
+    return jsonify({'success': True, 'cancelled': len(cancelled_jobs)})
 
 
 @app.route('/api/system/npu-reset', methods=['POST'])

@@ -1,0 +1,90 @@
+[   36045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   36045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   37045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   37045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   38045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   38045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   39045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   39045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   40045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   40045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   41045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   41045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   42045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   42045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   43045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   43045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   44045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   44045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   45045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   45045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   46045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   46045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  123045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  123045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  124045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  124045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  125045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  125045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  126045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  126045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  127045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  127045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  128045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  128046ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  129045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  129045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  130045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  130045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  131045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  131045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  132045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  132045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  133045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  133045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  134045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  134045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  135045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  135045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  149045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  149045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  150045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  150045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  151045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  151045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  152045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  152045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  153045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  153045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[  154045ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[  154045ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332

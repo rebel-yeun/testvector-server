@@ -1,0 +1,22 @@
+[      81ms] [ERROR] Failed to load resource: the server responded with a status of 404 (NOT FOUND) @ http://localhost:5000/favicon.ico:0
+[   71082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   71082ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   86081ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   86081ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   87081ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   87082ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   88082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   88082ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   89082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   89082ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   90082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   90082ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332
+[   91082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/system-info:0
+[   91082ms] [ERROR] Error: TypeError: Failed to fetch
+    at updateSystemInfo (http://localhost:5000/:1185:40) @ http://localhost:5000/:1332

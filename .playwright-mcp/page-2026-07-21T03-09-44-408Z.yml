@@ -1,0 +1,35 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "📋 워크로드 실행 시스템" [level=1] [ref=e6]
+      - paragraph [ref=e7]: 시스템 모니터링 & 워크로드 실행 통합 대시보드
+    - button "⏻ Power Off" [ref=e8] [cursor=pointer]
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - heading "온도" [level=3] [ref=e11]
+      - generic [ref=e12]: 0°C
+    - generic [ref=e14]:
+      - heading "전력" [level=3] [ref=e15]
+      - generic [ref=e16]: 0W
+    - generic [ref=e18]:
+      - heading "메모리" [level=3] [ref=e19]
+      - generic [ref=e20]: 0GB
+    - generic [ref=e22]:
+      - heading "유틸" [level=3] [ref=e23]
+      - generic [ref=e24]: 0%
+  - generic [ref=e26]:
+    - button "📋 워크로드 실행" [ref=e27] [cursor=pointer]
+    - button "📊 실시간 그래프" [ref=e28] [cursor=pointer]
+    - generic [ref=e29]:
+      - generic [ref=e30] [cursor=pointer]: rbln sysinfo
+      - generic [ref=e33]:
+        - generic [ref=e34]: 1.0s
+        - slider "1.0s" [ref=e35] [cursor=pointer]: "1000"
+  - generic [ref=e37]:
+    - button "⏸ Stop" [ref=e38] [cursor=pointer]
+    - button "▶ Resume" [disabled] [ref=e39] [cursor=pointer]
+    - button "🗑 Clear" [ref=e40] [cursor=pointer]
+    - generic [ref=e41]:
+      - generic [ref=e42]: "Avg Window:"
+      - slider [ref=e43] [cursor=pointer]: "1"
+      - generic [ref=e44]: 1s
