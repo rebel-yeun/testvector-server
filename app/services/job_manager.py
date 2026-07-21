@@ -8,6 +8,9 @@ from datetime import datetime
 active_clients = {}
 active_clients_lock = threading.Lock()
 
+_job_counter = 0
+_job_counter_lock = threading.Lock()
+
 
 class JobManager:
     def __init__(self, cfg):
@@ -16,11 +19,13 @@ class JobManager:
         self._cfg = cfg
 
     def create_job(self, workload, exec_time, workload_dir=None, save_log=False, log_path=None):
-        """새 작업 생성"""
+        global _job_counter
         if workload_dir is None:
             workload_dir = os.path.join(self._cfg.TESTVECTOR_ROOT, self._cfg.DEFAULT_WORKLOAD_DIR)
 
-        job_id = f"job_{int(time.time() * 1000)}"
+        with _job_counter_lock:
+            _job_counter += 1
+            job_id = f"job_{int(time.time() * 1000)}_{_job_counter}"
         job = {
             'job_id': job_id,
             'workload': workload,

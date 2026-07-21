@@ -48,6 +48,41 @@ VECTOR_GROUP_SCRIPTS = [
     "run_resnet50_ms.sh"
 ]
 
+VECTOR_GROUPS = {
+    'bert_large': ['bert_large', 'bert_chiplet', 'rebel_bert_chiplet'],
+    'retinanet': ['retinanet', 'retinanet_chiplet', 'rebel_retinanet_chiplet'],
+    'resnet50_ss': ['resnet50_ss', 'resnet50_ss_chiplet', 'rebel_resnet50_ss_chiplet'],
+    'resnet50_ms': ['resnet50_ms', 'resnet50_ms_chiplet', 'rebel_resnet50_ms_chiplet'],
+}
+
+
+def _find_group_files(workload_dir, group_name):
+    patterns = VECTOR_GROUPS.get(group_name)
+    if not patterns:
+        return None, f'지원하지 않는 그룹: {group_name}'
+
+    files = {}
+    missing = []
+    for idx in range(4):
+        found = None
+        for pattern in patterns:
+            for candidate_name in [f'{pattern}_{idx}_0.bin', f'*_{pattern}_{idx}_0.bin']:
+                matches = glob.glob(os.path.join(workload_dir, candidate_name))
+                if matches:
+                    matches.sort(key=os.path.getmtime, reverse=True)
+                    found = matches[0]
+                    break
+            if found:
+                break
+        if found:
+            files[idx] = found
+        else:
+            missing.append(idx)
+
+    if missing:
+        return None, f'{group_name} 그룹의 idx {missing} 파일이 없습니다'
+    return files, None
+
 POWEROFF_SUDO_PASSWORD = os.environ.get('POWEROFF_SUDO_PASSWORD', '')
 SUDO_CMD = ('sudo', '-S', '-p', '')
 SUDO_INPUT = POWEROFF_SUDO_PASSWORD + '\n' if POWEROFF_SUDO_PASSWORD else None
@@ -80,18 +115,22 @@ active_clients_lock = threading.Lock()
 
 Path(JOBS_DIR).mkdir(exist_ok=True)
 
-# Job 관리
+_job_counter = 0
+_job_counter_lock = threading.Lock()
+
 class JobManager:
     def __init__(self):
         self.jobs = {}
         self.lock = threading.Lock()
     
     def create_job(self, workload, exec_time, workload_dir=None, save_log=False, log_path=None):
-        """새 작업 생성"""
+        global _job_counter
         if workload_dir is None:
             workload_dir = DEFAULT_WORKLOAD_DIR
         
-        job_id = f"job_{int(time.time() * 1000)}"
+        with _job_counter_lock:
+            _job_counter += 1
+            job_id = f"job_{int(time.time() * 1000)}_{_job_counter}"
         job = {
             'job_id': job_id,
             'workload': workload,
@@ -680,10 +719,17 @@ def get_workloads():
             if os.path.exists(os.path.join(workload_dir, s))
         ]
         workloads = bin_workloads + script_workloads
-        
+
+        available_groups = []
+        for gname in VECTOR_GROUPS:
+            gfiles, err = _find_group_files(workload_dir, gname)
+            if not err:
+                available_groups.append(gname)
+
         return jsonify({
             'success': True,
             'workloads': workloads,
+            'available_groups': available_groups,
             'count': len(workloads),
             'bin_count': len(bin_workloads),
             'script_count': len(script_workloads),
@@ -750,6 +796,185 @@ def run_workload():
             'job_id': job_id
         })
     
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/run-group', methods=['POST'])
+def run_group():
+    try:
+        data = request.json
+        groups = data.get('groups', [])
+        exec_time = data.get('exec_time', 10)
+        workload_dir_rel = data.get('workload_dir', 'cr13/v3.2.0')
+        workload_dir = os.path.join("/home/rebellions/yeun/testvector", workload_dir_rel)
+        save_log = bool(data.get('save_log', False))
+        log_path = str(data.get('log_path', '')).strip() or '/home/rebellions/yeun/testvector-server/logs'
+
+        if not groups or not isinstance(groups, list):
+            return jsonify({'success': False, 'error': '그룹을 선택하세요'}), 400
+
+        invalid = [g for g in groups if g not in VECTOR_GROUPS]
+        if invalid:
+            return jsonify({'success': False, 'error': f'지원하지 않는 그룹: {invalid}'}), 400
+
+        try:
+            exec_time = int(exec_time)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': '실행 시간은 숫자여야 합니다'}), 400
+
+        if exec_time <= 0:
+            return jsonify({'success': False, 'error': '실행 시간은 0보다 커야 합니다'}), 400
+
+        if not os.path.exists(workload_dir):
+            return jsonify({'success': False, 'error': f'워크로드 폴더가 존재하지 않습니다: {workload_dir_rel}'}), 404
+
+        all_group_files = {}
+        for g in groups:
+            files, err = _find_group_files(workload_dir, g)
+            if err:
+                return jsonify({'success': False, 'error': err}), 400
+            all_group_files[g] = files
+
+        batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        job_ids = []
+
+        for g, files in all_group_files.items():
+            for idx in range(4):
+                fpath = files[idx]
+                fname = os.path.basename(fpath)
+                job_id = job_manager.create_job(fname, exec_time, workload_dir, save_log, log_path)
+                with job_manager.lock:
+                    if job_id in job_manager.jobs:
+                        job_manager.jobs[job_id]['batch_id'] = batch_id
+                        job_manager.jobs[job_id]['group'] = g
+                        job_manager.jobs[job_id]['client_ip'] = request.remote_addr or 'unknown'
+                job_ids.append(job_id)
+
+                thread = threading.Thread(
+                    target=run_workload_background,
+                    args=(job_id, fpath, exec_time, False),
+                    daemon=True
+                )
+                thread.start()
+
+        return jsonify({
+            'success': True,
+            'batch_id': batch_id,
+            'job_ids': job_ids,
+            'groups': groups,
+            'total': len(job_ids)
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/run-queue', methods=['POST'])
+def run_queue():
+    try:
+        data = request.json
+        queue = data.get('queue', [])
+        exec_time = data.get('exec_time', 10)
+        save_log = bool(data.get('save_log', False))
+        log_path = str(data.get('log_path', '')).strip() or '/home/rebellions/yeun/testvector-server/logs'
+
+        if not queue or not isinstance(queue, list):
+            return jsonify({'success': False, 'error': '실행 대기 목록이 비어있습니다'}), 400
+
+        try:
+            exec_time = int(exec_time)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': '실행 시간은 숫자여야 합니다'}), 400
+
+        if exec_time <= 0:
+            return jsonify({'success': False, 'error': '실행 시간은 0보다 커야 합니다'}), 400
+
+        batch_id = f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        all_job_ids = []
+        queue_plan = []
+
+        for item in queue:
+            item_type = item.get('type')
+            item_dir_rel = item.get('workload_dir', 'cr13/v3.2.0')
+            item_dir = os.path.join("/home/rebellions/yeun/testvector", item_dir_rel)
+
+            if not os.path.exists(item_dir):
+                return jsonify({'success': False, 'error': f'워크로드 폴더가 존재하지 않습니다: {item_dir_rel}'}), 404
+
+            if item_type == 'single':
+                workload = item.get('workload')
+                fpath = os.path.join(item_dir, workload)
+                if not os.path.exists(fpath):
+                    return jsonify({'success': False, 'error': f'파일 없음: {workload}'}), 404
+                job_id = job_manager.create_job(workload, exec_time, item_dir, save_log, log_path)
+                with job_manager.lock:
+                    if job_id in job_manager.jobs:
+                        job_manager.jobs[job_id]['batch_id'] = batch_id
+                        job_manager.jobs[job_id]['client_ip'] = request.remote_addr or 'unknown'
+                all_job_ids.append(job_id)
+                queue_plan.append({'type': 'single', 'job_id': job_id, 'path': fpath})
+
+            elif item_type == 'group':
+                files = item.get('files', [])
+                group_label = item.get('label', 'group')
+                group_job_ids = []
+                for fname in files:
+                    fpath = os.path.join(item_dir, fname)
+                    if not os.path.exists(fpath):
+                        return jsonify({'success': False, 'error': f'파일 없음: {fname}'}), 404
+                    job_id = job_manager.create_job(fname, exec_time, item_dir, save_log, log_path)
+                    with job_manager.lock:
+                        if job_id in job_manager.jobs:
+                            job_manager.jobs[job_id]['batch_id'] = batch_id
+                            job_manager.jobs[job_id]['group'] = group_label
+                            job_manager.jobs[job_id]['client_ip'] = request.remote_addr or 'unknown'
+                    group_job_ids.append(job_id)
+                    all_job_ids.append(job_id)
+                queue_plan.append({'type': 'group', 'job_ids': group_job_ids, 'paths': [os.path.join(item_dir, f) for f in files]})
+            else:
+                return jsonify({'success': False, 'error': f'알 수 없는 타입: {item_type}'}), 400
+
+        def execute_queue():
+            for plan_item in queue_plan:
+                if plan_item['type'] == 'single':
+                    jid = plan_item['job_id']
+                    run_workload_background(jid, plan_item['path'], exec_time, False)
+                    while True:
+                        job = job_manager.get_job(jid)
+                        if not job or job['status'] in ('completed', 'error', 'cancelled'):
+                            break
+                        time.sleep(0.5)
+
+                elif plan_item['type'] == 'group':
+                    threads = []
+                    for jid, fpath in zip(plan_item['job_ids'], plan_item['paths']):
+                        t = threading.Thread(
+                            target=run_workload_background,
+                            args=(jid, fpath, exec_time, False),
+                            daemon=True
+                        )
+                        t.start()
+                        threads.append(t)
+                    for t in threads:
+                        t.join()
+
+        thread = threading.Thread(target=execute_queue, daemon=True)
+        thread.start()
+
+        return jsonify({
+            'success': True,
+            'batch_id': batch_id,
+            'job_ids': all_job_ids,
+            'total': len(all_job_ids)
+        })
+
     except Exception as e:
         return jsonify({
             'success': False,
@@ -1005,6 +1230,29 @@ def get_system_info():
             'active_clients': client_list,
             'running_job': running_job_info
         })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/system/poweroff', methods=['POST'])
+def system_poweroff():
+    if not POWEROFF_SUDO_PASSWORD:
+        return jsonify({'success': False, 'error': 'POWEROFF_SUDO_PASSWORD가 설정되지 않았습니다.'}), 503
+
+    try:
+        def _delayed_poweroff():
+            time.sleep(2)
+            subprocess.run(
+                SUDO_CMD + ('shutdown', '-h', 'now'),
+                input=SUDO_INPUT,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+        threading.Thread(target=_delayed_poweroff, daemon=True).start()
+        return jsonify({'success': True, 'message': '시스템이 2초 후 종료됩니다.'})
 
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

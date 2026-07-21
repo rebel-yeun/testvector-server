@@ -149,6 +149,15 @@
             color: #667eea;
         }
 
+        .workload-item.multi-item {
+            border-left: 4px solid #43e97b;
+        }
+
+        .workload-item.multi-item:hover {
+            border-color: #43e97b;
+            border-left: 4px solid #43e97b;
+        }
+
         .right-panel {
             width: 70%;
             display: flex;
@@ -289,6 +298,19 @@
         .btn-cancel:disabled {
             background: #ccc;
             cursor: not-allowed;
+        }
+
+        .btn-poweroff {
+            background: #ff5722;
+            color: white;
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .btn-poweroff:hover {
+            background: #e64a19;
         }
 
         .progress-section {
@@ -527,6 +549,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
+            position: relative;
         }
 
         .client-ips {
@@ -657,6 +680,7 @@
                 <div class="client-ips" id="client-ips">
                     <!-- IP badges will go here -->
                 </div>
+                <button class="btn btn-poweroff" onclick="powerOff()">⏻ Power Off</button>
             </div>
         </div>
         <div class="conflict-banner" id="conflict-banner">
@@ -714,12 +738,29 @@
 
         <!-- 중단: 메인 콘텐츠 -->
         <div class="main-content" id="main-content-tab" style="display:none;">
-            <!-- 왼쪽: 워크로드 리스트 -->
+            <!-- 왼쪽: 워크로드 리스트 (상/하 분리) -->
             <div class="left-panel">
                 <div class="workload-header">
-                    <h2>📦 워크로드</h2>
+                    <h2>📋 실행 대기</h2>
+                    <button class="btn" onclick="clearQueue()" style="font-size:10px;padding:3px 8px;background:#ff7675;color:#fff;float:right;margin-top:-22px;">Clear</button>
                 </div>
-                <div class="workload-list" id="workload-list">
+                <div class="workload-list" id="queue-list" style="flex:1;min-height:120px;background:#f0fff4;">
+                    <div class="empty-state"><p>벡터를 추가하세요</p></div>
+                </div>
+
+                <div style="display:flex;gap:6px;padding:8px 10px;background:#f0f2f5;border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;flex-wrap:wrap;">
+                    <button class="btn" onclick="addToQueue()" style="font-size:11px;padding:5px 10px;background:#667eea;color:#fff;">▲ 추가</button>
+                    <button class="btn" onclick="removeFromQueue()" style="font-size:11px;padding:5px 10px;background:#e0e0e0;color:#333;">▼ 제거</button>
+                    <button class="btn" onclick="addGroupToQueue()" style="font-size:11px;padding:5px 10px;background:#43e97b;color:#fff;">▲ 그룹추가</button>
+                    <button class="btn" onclick="removeGroupFromQueue()" style="font-size:11px;padding:5px 10px;background:#ffb3b3;color:#333;">▼ 그룹제거</button>
+                    <button class="btn" onclick="moveQueueUp()" style="font-size:11px;padding:5px 10px;background:#dfe6e9;color:#333;">🔼 위로</button>
+                    <button class="btn" onclick="moveQueueDown()" style="font-size:11px;padding:5px 10px;background:#dfe6e9;color:#333;">🔽 아래로</button>
+                </div>
+
+                <div class="workload-header">
+                    <h2>📦 전체 벡터</h2>
+                </div>
+                <div class="workload-list" id="workload-list" style="flex:2;">
                     <div class="empty-state">
                         <div class="empty-state-icon">⏳</div>
                         <p>로드 중...</p>
@@ -743,7 +784,7 @@
                             <label for="exec-time">시간(초):</label>
                             <input type="number" id="exec-time" value="10" min="1" max="3600">
                             <div class="button-group">
-                                <button class="btn btn-run" id="btn-run" onclick="runWorkload()" disabled>
+                                <button class="btn btn-run" id="btn-run" onclick="runQueue()" disabled>
                                     Run
                                 </button>
                                 <button class="btn btn-cancel" id="btn-cancel" onclick="cancelWorkload()" disabled>
@@ -828,6 +869,11 @@
         let pollInterval = null;
         let sysInfoInterval = null;
         let logOffset = 0;
+        let multiSelectableList = [];
+        let selectedGroups = [];
+        let batchJobIds = [];
+        let batchPollInterval = null;
+        let executionQueue = [];  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
 
         // Chart variables
         let powerTempChart, hbmDramChart, railCore0Chart, railCore1UcieChart, railEtcChart;
@@ -1332,9 +1378,6 @@
         function onWorkloadFolderChange() {
             const select = document.getElementById('workload-folder');
             selectedWorkloadFolder = select.value;
-            selectedWorkload = null;
-            document.querySelectorAll('.workload-item').forEach(el => el.classList.remove('selected'));
-            document.getElementById('btn-run').disabled = true;
             loadWorkloads();
         }
 
@@ -1346,79 +1389,303 @@
 
                 if (data.success) {
                     const listContainer = document.getElementById('workload-list');
-
-                    if (data.workloads.length === 0) {
-                        listContainer.innerHTML = '<div class="empty-state"><p>워크로드 없음</p></div>';
-                    } else {
-                        listContainer.innerHTML = data.workloads
-                            .map(workload => {
-                                const isScript = workload.endsWith('.sh');
-                                const icon = isScript ? '⚙️ [GROUP]' : '📂 [BIN]';
-                                return `
-                                <div class="workload-item" onclick="selectWorkload('${workload}', this)">
-                                    ${icon} ${workload}
-                                </div>
-                            `;
-                            })
-                            .join('');
-                    }
+                    const nonGroupWorkloads = data.workloads.filter(w => !w.endsWith('.sh'));
+                    let html = '';
+                    nonGroupWorkloads.forEach(workload => {
+                        html += `
+                        <div class="workload-item" onclick="toggleWorkloadSelect('${workload}', this)">
+                            <input type="checkbox" class="wl-checkbox" data-workload="${workload}" onclick="event.stopPropagation(); toggleWorkloadSelect('${workload}', this.parentElement)" style="width:14px;height:14px;margin-right:6px;">
+                            📂 ${workload}
+                        </div>`;
+                    });
+                    listContainer.innerHTML = html || '<div class="empty-state"><p>워크로드 없음</p></div>';
+                    updateRunButton();
                 }
             } catch (error) {
                 console.error('Error:', error);
             }
         }
 
-        function selectWorkload(workload, element) {
-            document.querySelectorAll('.workload-item').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
-            selectedWorkload = workload;
-            document.getElementById('btn-run').disabled = false;
+        function getSelectedWorkloads() {
+            return Array.from(document.querySelectorAll('.wl-checkbox:checked')).map(cb => cb.dataset.workload);
         }
 
-        async function runWorkload() {
-            if (!selectedWorkload) {
-                alert('워크로드를 선택하세요');
-                return;
-            }
+        function toggleWorkloadSelect(workload, el) {
+            const cb = el.querySelector('.wl-checkbox');
+            if (document.activeElement !== cb) cb.checked = !cb.checked;
+            el.classList.toggle('selected', cb.checked);
+        }
 
-            if (!selectedWorkloadFolder) {
-                alert('워크로드 폴더를 선택하세요');
+        function isGroupableVector(filename) {
+            return /bert|retinanet|resnet/.test(filename);
+        }
+
+        function getVectorKind(filename) {
+            if (/bert/.test(filename)) return 'bert';
+            if (/retinanet/.test(filename)) return 'retinanet';
+            if (/resnet.*ms/.test(filename)) return 'resnet_ms';
+            if (/resnet/.test(filename)) return 'resnet_ss';
+            return null;
+        }
+
+        function clearCheckboxes() {
+            document.querySelectorAll('.wl-checkbox:checked').forEach(cb => {
+                cb.checked = false;
+                cb.parentElement.classList.remove('selected');
+            });
+        }
+
+        function addToQueue() {
+            const selected = getSelectedWorkloads();
+            if (selected.length === 0) { alert('추가할 벡터를 선택하세요'); return; }
+            selected.forEach(w => {
+                if (!executionQueue.find(q => q.type === 'single' && q.workload === w && q.workload_dir === selectedWorkloadFolder)) {
+                    executionQueue.push({type: 'single', workload: w, workload_dir: selectedWorkloadFolder});
+                }
+            });
+            clearCheckboxes();
+            renderQueue();
+            updateRunButton();
+        }
+
+        function removeFromQueue() {
+            const queueList = document.getElementById('queue-list');
+            const checked = queueList.querySelectorAll('.queue-checkbox:checked');
+            if (checked.length === 0) { alert('제거할 항목을 선택하세요'); return; }
+            const indices = Array.from(checked).map(cb => parseInt(cb.dataset.idx)).sort((a,b) => b-a);
+            indices.forEach(i => executionQueue.splice(i, 1));
+            renderQueue();
+            updateRunButton();
+        }
+
+        function addGroupToQueue() {
+            const selected = getSelectedWorkloads();
+            if (selected.length === 0) { alert('그룹에 추가할 벡터를 선택하세요'); return; }
+            const groupable = selected.filter(isGroupableVector);
+            if (groupable.length === 0) { alert('bert, retinanet, resnet 벡터만 그룹 추가 가능합니다'); return; }
+            if (groupable.length !== selected.length) { alert('그룹 추가 불가: bert/retinanet/resnet 외의 벡터가 포함되어 있습니다'); return; }
+
+            const kinds = groupable.map(getVectorKind);
+            const uniqueKinds = [...new Set(kinds)];
+            if (uniqueKinds.length > 1) { alert(`같은 종류끼리만 그룹 가능합니다.\n선택된 종류: ${uniqueKinds.join(', ')}`); return; }
+
+            const label = uniqueKinds[0] + '_group';
+            if (executionQueue.find(q => q.type === 'group' && JSON.stringify(q.files.sort()) === JSON.stringify(groupable.sort()))) {
+                alert('이미 동일한 그룹이 대기열에 있습니다'); return;
+            }
+            executionQueue.push({type: 'group', label: label, files: groupable, workload_dir: selectedWorkloadFolder});
+            clearCheckboxes();
+            renderQueue();
+            updateRunButton();
+        }
+
+        function removeGroupFromQueue() {
+            const queueList = document.getElementById('queue-list');
+            const checked = queueList.querySelectorAll('.queue-checkbox:checked');
+            if (checked.length === 0) { alert('제거할 항목을 선택하세요'); return; }
+            const indices = Array.from(checked).map(cb => parseInt(cb.dataset.idx)).sort((a,b) => b-a);
+            indices.forEach(i => executionQueue.splice(i, 1));
+            renderQueue();
+            updateRunButton();
+        }
+
+        function renderQueue() {
+            const container = document.getElementById('queue-list');
+            if (executionQueue.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>벡터를 추가하세요</p></div>';
                 return;
             }
+            let html = '';
+            executionQueue.forEach((item, idx) => {
+                const dirLabel = item.workload_dir || '';
+                if (item.type === 'single') {
+                    html += `<div class="workload-item" style="background:#f8fff8;">
+                        <input type="checkbox" class="queue-checkbox" data-idx="${idx}" style="width:14px;height:14px;margin-right:6px;">
+                        📂 ${item.workload}
+                        <span style="font-size:10px;color:#999;margin-left:6px;">[${dirLabel}]</span>
+                    </div>`;
+                } else {
+                    html += `<div class="workload-item" style="background:#e8f5e9;border-left:3px solid #43e97b;">
+                        <input type="checkbox" class="queue-checkbox" data-idx="${idx}" style="width:14px;height:14px;margin-right:6px;">
+                        🔀 [그룹] ${item.label} (${item.files.length}개 병렬)
+                        <span style="font-size:10px;color:#999;margin-left:6px;">[${dirLabel}]</span>
+                        <div style="font-size:11px;color:#666;margin-left:26px;">${item.files.join(', ')}</div>
+                    </div>`;
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        function updateRunButton() {
+            document.getElementById('btn-run').disabled = executionQueue.length === 0;
+        }
+
+        function clearQueue() {
+            executionQueue = [];
+            renderQueue();
+            updateRunButton();
+        }
+
+        function moveQueueUp() {
+            const checked = document.querySelectorAll('#queue-list .queue-checkbox:checked');
+            if (checked.length === 0) { alert('이동할 항목을 선택하세요'); return; }
+            const indices = Array.from(checked).map(cb => parseInt(cb.dataset.idx)).sort((a,b) => a-b);
+            for (const idx of indices) {
+                if (idx === 0) continue;
+                [executionQueue[idx-1], executionQueue[idx]] = [executionQueue[idx], executionQueue[idx-1]];
+            }
+            renderQueue();
+            // Re-check moved items
+            indices.forEach(idx => {
+                const newIdx = Math.max(0, idx - 1);
+                const cb = document.querySelector(`#queue-list .queue-checkbox[data-idx="${newIdx}"]`);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        function moveQueueDown() {
+            const checked = document.querySelectorAll('#queue-list .queue-checkbox:checked');
+            if (checked.length === 0) { alert('이동할 항목을 선택하세요'); return; }
+            const indices = Array.from(checked).map(cb => parseInt(cb.dataset.idx)).sort((a,b) => b-a);
+            for (const idx of indices) {
+                if (idx >= executionQueue.length - 1) continue;
+                [executionQueue[idx], executionQueue[idx+1]] = [executionQueue[idx+1], executionQueue[idx]];
+            }
+            renderQueue();
+            indices.forEach(idx => {
+                const newIdx = Math.min(executionQueue.length - 1, idx + 1);
+                const cb = document.querySelector(`#queue-list .queue-checkbox[data-idx="${newIdx}"]`);
+                if (cb) cb.checked = true;
+            });
+        }
+
+        async function runQueue() {
+            if (executionQueue.length === 0) { alert('실행 대기 목록이 비어있습니다'); return; }
 
             const execTime = parseInt(document.getElementById('exec-time').value);
-
-            if (isNaN(execTime) || execTime <= 0) {
-                alert('유효한 시간을 입력하세요');
-                return;
-            }
+            if (isNaN(execTime) || execTime <= 0) { alert('유효한 시간을 입력하세요'); return; }
 
             try {
-                const response = await fetch('/api/run', {
+                const response = await fetch('/api/run-queue', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        workload: selectedWorkload, 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        queue: executionQueue,
                         exec_time: execTime,
-                        workload_dir: selectedWorkloadFolder,
                         save_log: document.getElementById('chk-save-log').checked,
                         log_path: '/home/rebellions/yeun/testvector-server/logs'
                     })
                 });
-
                 const data = await response.json();
-
                 if (data.success) {
-                    currentJob = data.job_id;
                     document.getElementById('btn-run').disabled = true;
                     document.getElementById('btn-cancel').disabled = false;
-                    startProgressMonitoring(currentJob, execTime);
+                    batchJobIds = data.job_ids;
+                    startQueueMonitoring(data.job_ids, execTime, executionQueue);
                 } else {
                     alert('실행 실패: ' + data.error);
                 }
             } catch (error) {
                 alert('오류: ' + error.message);
             }
+        }
+
+        async function startQueueMonitoring(jobIds, execTime, queueItems) {
+            const progressDisplay = document.getElementById('progress-display');
+            const logBox = document.getElementById('live-log-box');
+            logBox.textContent = '[큐 실행 시작]\n';
+            const offsets = {};
+            jobIds.forEach(jid => { offsets[jid] = 0; });
+
+            const totalQueueItems = queueItems.length;
+
+            // Map job_ids to queue item indices
+            let jobToQueueIdx = {};
+            let jobIdx = 0;
+            queueItems.forEach((item, qIdx) => {
+                if (item.type === 'single') {
+                    jobToQueueIdx[jobIds[jobIdx]] = qIdx;
+                    jobIdx++;
+                } else {
+                    const count = item.files.length;
+                    for (let i = 0; i < count; i++) {
+                        jobToQueueIdx[jobIds[jobIdx]] = qIdx;
+                        jobIdx++;
+                    }
+                }
+            });
+
+            progressDisplay.innerHTML = `
+                <div class="progress-content">
+                    <div class="progress-stage"><span class="spinner"></span>실행 중: 0 / ${totalQueueItems} 완료</div>
+                </div>`;
+
+            batchPollInterval = setInterval(async () => {
+                try {
+                    let jobStatuses = {};
+                    for (const jid of jobIds) {
+                        const res = await fetch(`/api/job/${jid}`);
+                        const d = await res.json();
+                        if (d.success) jobStatuses[jid] = d.job.status;
+
+                        const logRes = await fetch(`/api/job/${jid}/logs?offset=${offsets[jid]}`);
+                        const logData = await logRes.json();
+                        if (logData.success && logData.logs && logData.logs.length > 0) {
+                            const nearBottom = logBox.scrollHeight - logBox.scrollTop - logBox.clientHeight < 24;
+                            logBox.textContent += logData.logs;
+                            if (logBox.textContent.length > 300000) logBox.textContent = logBox.textContent.slice(-300000);
+                            if (nearBottom) logBox.scrollTop = logBox.scrollHeight;
+                        }
+                        if (typeof logData.next_offset === 'number') offsets[jid] = logData.next_offset;
+                    }
+
+                    // Count completed queue items (group = all its jobs done)
+                    let completedItems = 0, errorItems = 0;
+                    let activeItems = [];
+                    let jIdx = 0;
+                    for (const item of queueItems) {
+                        const count = item.type === 'single' ? 1 : item.files.length;
+                        let itemDone = true, itemError = false, itemRunning = false;
+                        for (let i = 0; i < count; i++) {
+                            const s = jobStatuses[jobIds[jIdx]] || 'pending';
+                            if (s !== 'completed' && s !== 'error' && s !== 'cancelled') itemDone = false;
+                            if (s === 'error' || s === 'cancelled') itemError = true;
+                            if (s === 'running' || s === 'preparing') itemRunning = true;
+                            jIdx++;
+                        }
+                        if (itemDone) { completedItems++; if (itemError) errorItems++; }
+                        else if (itemRunning) {
+                            if (item.type === 'single') activeItems.push(item.workload);
+                            else activeItems.push(`[그룹] ${item.label} (${item.files.length}개)`);
+                        }
+                    }
+
+                    const pct = Math.round(completedItems / totalQueueItems * 100);
+                    const isDone = completedItems === totalQueueItems;
+
+                    const activeText = activeItems.length > 0
+                        ? activeItems.join(', ')
+                        : (isDone ? '' : '대기 중...');
+                    progressDisplay.innerHTML = `
+                        <div class="progress-content">
+                            <div class="progress-stage">
+                                ${isDone ? (errorItems > 0 ? '⚠️' : '✅') : '<span class="spinner"></span>'} ${isDone ? '완료' : '실행 중'}: ${completedItems} / ${totalQueueItems}${errorItems > 0 ? ` (실패 ${errorItems})` : ''}
+                            </div>
+                            <div class="metric-bar" style="margin-top:8px;"><div class="metric-bar-fill" style="width:${pct}%"></div></div>
+                            ${!isDone ? `<div style="margin-top:6px;font-size:12px;color:#555;">▶ ${activeText}</div>` : ''}
+                        </div>`;
+
+                    if (isDone) {
+                        clearInterval(batchPollInterval);
+                        document.getElementById('btn-run').disabled = false;
+                        document.getElementById('btn-cancel').disabled = true;
+                        logBox.textContent += `\n[실행 완료: ${totalQueueItems}건, 실패 ${errorItems}건]\n`;
+                        if (errorItems === 0 && document.getElementById('chk-auto-download').checked && jobIds.length === 1) {
+                            window.location.href = '/api/job/' + jobIds[0] + '/download';
+                        }
+                    }
+                } catch (error) { console.error('Queue poll error:', error); }
+            }, 1000);
         }
 
         async function startProgressMonitoring(jobId, execTime) {
@@ -1562,6 +1829,23 @@
                 setTimeout(() => { lastCancelledJob = null; }, 5000);
             } catch (error) {
                 console.error('Error:', error);
+            }
+        }
+
+        async function powerOff() {
+            if (!confirm('정말로 PC 전원을 끄시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
+            if (!confirm('최종 확인: 시스템이 종료됩니다. 계속하시겠습니까?')) return;
+
+            try {
+                const res = await fetch('/api/system/poweroff', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('시스템이 곧 종료됩니다.');
+                } else {
+                    alert('Power Off 실패: ' + data.error);
+                }
+            } catch (e) {
+                alert('요청 실패: ' + e.message);
             }
         }
     </script>
