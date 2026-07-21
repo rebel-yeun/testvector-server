@@ -875,7 +875,7 @@
         let batchPollInterval = null;
         let executionQueue = [];
         let currentBatchId = null;
-        let cancelledJobIds = [];  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
+        let myJobIds = new Set();  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
 
         // Chart variables
         let powerTempChart, hbmDramChart, railCore0Chart, railCore1UcieChart, railEtcChart;
@@ -1211,10 +1211,8 @@
                 const banner = document.getElementById('conflict-banner');
                 const runBtn = document.getElementById('btn-run');
                 const isOtherRunning = data.running_job 
-                    && (!currentJob || data.running_job.job_id !== currentJob)
-                    && !batchJobIds.includes(data.running_job.job_id)
-                    && !cancelledJobIds.includes(data.running_job.job_id)
-                    && data.running_job.job_id !== lastCancelledJob;
+                    && !myJobIds.has(data.running_job.job_id)
+                    && (!currentJob || data.running_job.job_id !== currentJob);
                 
                 if (isOtherRunning) {
                     if (banner) {
@@ -1587,6 +1585,7 @@
                     document.getElementById('btn-run').disabled = true;
                     document.getElementById('btn-cancel-current').disabled = false; document.getElementById('btn-cancel-all').disabled = false;
                     batchJobIds = data.job_ids;
+                    data.job_ids.forEach(id => myJobIds.add(id));
                     currentBatchId = data.batch_id;
                     startQueueMonitoring(data.job_ids, execTime, executionQueue);
                 } else {
@@ -1853,10 +1852,8 @@
                 if (currentBatchId) {
                     await fetch(`/api/batch/${currentBatchId}/cancel`, { method: 'POST' });
                     if (batchPollInterval) { clearInterval(batchPollInterval); batchPollInterval = null; }
-                    cancelledJobIds = [...batchJobIds];
                     batchJobIds = [];
                     currentBatchId = null;
-                    setTimeout(() => { cancelledJobIds = []; }, 10000);
                 } else if (currentJob) {
                     await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
                     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
