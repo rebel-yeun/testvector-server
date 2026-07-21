@@ -1827,9 +1827,15 @@
                     }
                 } else if (currentJob) {
                     await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
-                    clearInterval(pollInterval);
-                    pollInterval = null;
+                    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
                     currentJob = null;
+                    document.getElementById('btn-cancel-current').disabled = true; document.getElementById('btn-cancel-all').disabled = true;
+                    document.getElementById('btn-run').disabled = executionQueue.length === 0;
+                    document.getElementById('progress-display').innerHTML = `
+                        <div class="progress-content">
+                            <div class="progress-stage">🚫 취소됨</div>
+                        </div>
+                    `;
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -1843,14 +1849,12 @@
             try {
                 if (currentBatchId) {
                     await fetch(`/api/batch/${currentBatchId}/cancel`, { method: 'POST' });
-                    clearInterval(batchPollInterval);
-                    batchPollInterval = null;
+                    if (batchPollInterval) { clearInterval(batchPollInterval); batchPollInterval = null; }
                     batchJobIds = [];
                     currentBatchId = null;
                 } else if (currentJob) {
                     await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
-                    clearInterval(pollInterval);
-                    pollInterval = null;
+                    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
                     currentJob = null;
                 }
 
@@ -1861,6 +1865,7 @@
                         <div class="progress-stage">🚫 전체 취소됨</div>
                     </div>
                 `;
+                document.getElementById('live-log-box').textContent += '\n[전체 취소됨]\n';
             } catch (error) {
                 console.error('Error:', error);
             }
