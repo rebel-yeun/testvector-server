@@ -1812,23 +1812,32 @@
         }
 
         async function cancelWorkload() {
-            if (!currentJob) return;
+            if (!currentJob && batchJobIds.length === 0) return;
 
             try {
-                lastCancelledJob = currentJob;
-                await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
-                clearInterval(pollInterval);
-                pollInterval = null;
-                currentJob = null;
+                if (batchJobIds.length > 0) {
+                    for (const jid of batchJobIds) {
+                        await fetch(`/api/job/${jid}/cancel`, { method: 'POST' });
+                    }
+                    clearInterval(batchPollInterval);
+                    batchPollInterval = null;
+                    batchJobIds = [];
+                } else if (currentJob) {
+                    lastCancelledJob = currentJob;
+                    await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    currentJob = null;
+                    setTimeout(() => { lastCancelledJob = null; }, 5000);
+                }
 
-                document.getElementById('btn-run').disabled = !selectedWorkload;
+                document.getElementById('btn-run').disabled = executionQueue.length === 0;
                 document.getElementById('btn-cancel').disabled = true;
                 document.getElementById('progress-display').innerHTML = `
                     <div class="progress-content">
                         <div class="progress-stage">🚫 취소됨</div>
                     </div>
                 `;
-                setTimeout(() => { lastCancelledJob = null; }, 5000);
             } catch (error) {
                 console.error('Error:', error);
             }
