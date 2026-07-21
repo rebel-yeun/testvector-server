@@ -64,6 +64,59 @@ gunicorn --workers 1 -b 0.0.0.0:5000 'run:app'
 
 > **주의**: 반드시 **`--workers 1`** 설정을 사용해야 합니다. `JobManager`가 인메모리(in-memory) 방식으로 작업을 관리하므로, 멀티 워커 사용 시 작업 상태 공유가 불가능합니다.
 
+### 부팅 시 자동 실행 (systemd)
+
+PC가 켜질 때마다 서버가 자동으로 실행되도록 systemd 서비스를 등록합니다.
+
+**1. 서비스 파일 생성:**
+```bash
+sudo nano /etc/systemd/system/workload-server.service
+```
+
+**2. 아래 내용을 붙여넣기 (경로는 환경에 맞게 수정):**
+```ini
+[Unit]
+Description=Testvector Workload Server
+After=network.target
+
+[Service]
+Type=simple
+User=rebellions
+WorkingDirectory=/home/rebellions/testvector-server
+ExecStart=/home/rebellions/testvector-server/venv/bin/python web_server.py
+Restart=always
+RestartSec=3
+Environment=PATH=/home/rebellions/testvector-server/venv/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target
+```
+
+> **경로 수정 가이드:**
+> - `User`: 리눅스 사용자명
+> - `WorkingDirectory`: 프로젝트 클론 경로
+> - `ExecStart`: venv 내 python 경로 + web_server.py
+> - venv 경로 확인: `which python` (venv 활성화 상태에서)
+
+**3. 서비스 등록 및 시작:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable workload-server.service   # 부팅 시 자동 실행 등록
+sudo systemctl start workload-server.service    # 지금 바로 시작
+```
+
+**4. 상태 확인:**
+```bash
+sudo systemctl status workload-server.service
+```
+
+**5. 유용한 명령어:**
+```bash
+sudo systemctl restart workload-server.service  # 재시작 (코드 업데이트 후)
+sudo systemctl stop workload-server.service     # 중지
+journalctl -u workload-server.service -f        # 실시간 로그 확인
+```
+
 ## 6. API 요약
 
 | 메서드 | 경로 | 설명 |
