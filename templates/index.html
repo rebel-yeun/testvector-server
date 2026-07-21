@@ -873,6 +873,7 @@
         let selectedGroups = [];
         let batchJobIds = [];
         let batchPollInterval = null;
+        let batchCancelled = false;
         let executionQueue = [];
         let currentBatchId = null;
         let myJobIds = new Set();  // [{type:'single', workload:'x.bin'}, {type:'group', label:'bert', files:[...]}]
@@ -1626,7 +1627,9 @@
                     <div class="progress-stage"><span class="spinner"></span>실행 중: 0 / ${totalQueueItems} 완료</div>
                 </div>`;
 
+            batchCancelled = false;
             batchPollInterval = setInterval(async () => {
+                if (batchCancelled) return;
                 try {
                     let jobStatuses = {};
                     for (const jid of jobIds) {
@@ -1852,6 +1855,7 @@
                 if (currentBatchId) {
                     await fetch(`/api/batch/${currentBatchId}/cancel`, { method: 'POST' });
                     if (batchPollInterval) { clearInterval(batchPollInterval); batchPollInterval = null; }
+                    batchCancelled = true;
                     batchJobIds = [];
                     currentBatchId = null;
                 } else if (currentJob) {
