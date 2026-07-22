@@ -1213,6 +1213,7 @@
                 const runBtn = document.getElementById('btn-run');
                 const isOtherRunning = data.running_job 
                     && !myJobIds.has(data.running_job.job_id)
+                    && !batchCancelled
                     && (!currentJob || data.running_job.job_id !== currentJob);
                 
                 if (isOtherRunning) {
@@ -1858,11 +1859,13 @@
                     await fetch(`/api/batch/${currentBatchId}/cancel`, { method: 'POST' });
                     if (batchPollInterval) { clearInterval(batchPollInterval); batchPollInterval = null; }
                     batchCancelled = true;
+                    setTimeout(() => { batchCancelled = false; }, 15000);
                     batchJobIds = [];
                     currentBatchId = null;
                 } else if (currentJob) {
                     await fetch(`/api/job/${currentJob}/cancel`, { method: 'POST' });
                     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+                    myJobIds.add(currentJob);
                     currentJob = null;
                 }
 
